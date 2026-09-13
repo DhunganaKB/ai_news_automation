@@ -1,0 +1,21 @@
+# --- Secrets (NEVER commit) -------------------------------------------------
+.env
+*.env
+!.env.example
+
+# --- Generated / local runtime data -----------------------------------------
+data/
+ingestion/logs/
+infra/.run_url
+
+# --- Python -----------------------------------------------------------------
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# --- OS / editor ------------------------------------------------------------
+.DS_Store
+*.swp
+.idea/
+.vscode/

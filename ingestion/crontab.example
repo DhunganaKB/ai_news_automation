@@ -1,0 +1,18 @@
+# Cron entry to fetch AI news daily and push the collection to GCS.
+# Install it with:   crontab -e   (then paste the line below)
+# Verify with:       crontab -l
+#
+# Runs fetch_and_push_news.sh once a day at 07:00 local time.
+# It logs to local_uploader/logs/.
+#
+# minute hour dom month dow  command
+0 7 * * * /Users/kamaldhungana/Documents/Coding/pubsub/part1/ingestion/fetch_and_push_news.sh
+
+# --- Older option: sync a local data/ folder instead of fetching news --------
+# 0 * * * * /Users/kamaldhungana/Documents/Coding/pubsub/part1/ingestion/push_to_gcs.sh
+
+# ---------------------------------------------------------------------------
+# macOS note: cron needs "Full Disk Access" to read/write files in Documents.
+#   System Settings -> Privacy & Security -> Full Disk Access -> add /usr/sbin/cron
+# Otherwise the script runs but can't see your project folder.
+# ---------------------------------------------------------------------------
