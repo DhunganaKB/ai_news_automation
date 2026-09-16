@@ -1,0 +1,30 @@
+name: Lint
+
+# Runs on every push to ANY branch, and on pull requests.
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+jobs:
+  python-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install ruff
+        run: pip install ruff==0.7.4
+      - name: Ruff check
+        run: ruff check .
+
+  shell-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: ShellCheck (errors only)
+        uses: ludeeus/action-shellcheck@master
+        with:
+          severity: error
+          scandir: '.'

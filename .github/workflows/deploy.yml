@@ -1,0 +1,70 @@
+name: Deploy
+
+# Two deployment triggers:
+#   1. Push to main            -> deploy latest main.
+#   2. Push a tag matching v*  -> deploy that tagged commit (from ANY branch).
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+
+# Only one deploy at a time; let an in-progress deploy finish.
+concurrency:
+  group: deploy-cloud-run
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  id-token: write        # REQUIRED for Workload Identity Federation
+
+env:
+  # Set these as GitHub repository variables (Settings -> Secrets and variables
+  # -> Actions -> Variables). Nothing account-specific is hardcoded here.
+  PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+  REGION: ${{ vars.GCP_REGION }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Authenticate to GCP (keyless, via WIF)
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOYER_SA }}
+
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Show what we are deploying
+        run: echo "Deploying ref ${{ github.ref }} (sha ${{ github.sha }})"
+
+      - name: Deploy news-fetcher
+        run: |
+          gcloud run deploy news-fetcher \
+            --project="$PROJECT_ID" --region="$REGION" \
+            --source=services/news-fetcher \
+            --service-account="news-fetcher-sa@${PROJECT_ID}.iam.gserviceaccount.com" \
+            --no-allow-unauthenticated \
+            --set-env-vars="SOURCE_BUCKET=source_raw_123456,INCOMING_PREFIX=incoming/" \
+            --set-secrets="TAVILY_API_KEY=tavily-api-key:latest" \
+            --quiet
+
+      - name: Deploy raw-file-processor
+        run: |
+          gcloud run deploy raw-file-processor \
+            --project="$PROJECT_ID" --region="$REGION" \
+            --source=services/raw-file-processor \
+            --service-account="raw-processor-sa@${PROJECT_ID}.iam.gserviceaccount.com" \
+            --no-allow-unauthenticated \
+            --set-env-vars="DEST_BUCKET=destination_raw_123456,PROCESSED_PREFIX=processed/" \
+            --quiet
+
+      - name: Summary
+        run: |
+          echo "### Deployed ✅" >> "$GITHUB_STEP_SUMMARY"
+          echo "- ref: \`${{ github.ref_name }}\`" >> "$GITHUB_STEP_SUMMARY"
+          gcloud run services list --project="$PROJECT_ID" --region="$REGION" \
+            --format="value(metadata.name,status.url)" >> "$GITHUB_STEP_SUMMARY"

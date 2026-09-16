@@ -7,6 +7,10 @@
 data/
 ingestion/logs/
 infra/.run_url
+infra/.fetcher_url
+
+# --- Personal run guide (embeds real project ID + live console links) --------
+app_run.html
 
 # --- Python -----------------------------------------------------------------
 __pycache__/

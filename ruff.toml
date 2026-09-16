@@ -1,0 +1,12 @@
+# Ruff linting config (used by the Lint GitHub Action and locally).
+# Kept deliberately focused: catch real errors (undefined names, unused imports,
+# syntax problems) without failing CI over cosmetic style.
+line-length = 100
+target-version = "py312"
+
+[lint]
+select = ["E", "F", "W"]   # pycodestyle errors/warnings + pyflakes
+ignore = ["E501"]          # don't fail on long lines
+
+[lint.per-file-ignores]
+"ingestion/fetch_ai_news.py" = ["E402"]

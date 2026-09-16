@@ -1,31 +1,21 @@
-#!/usr/bin/env python3
 """
-fetch_ai_news.py  —  fetch AI news BY CATEGORY, write a JSON collection to disk.
+news_source.py  —  category-aware AI news fetcher (pure logic, no I/O side effects).
 
-Each of the 5 categories has its own tuned Tavily queries, and every article is
-tagged with the category it was found under. This is more reliable than fetching
-a generic feed and guessing categories afterward.
+Canonical fetch logic for the cloud `news-fetcher` service. Given a Tavily API
+key (or None), it returns a ready-to-serialise "collection" dict identical in
+shape to what the processor expects.
 
-Sources (priority order):
-  1. Tavily Search API  (if TAVILY_API_KEY is set) — relevance-scored news.
-  2. Google News RSS    — free fallback per query, so a category is never empty.
-
-Stdlib only, so it runs in the `mcp` conda env with nothing to install.
-
-Usage:
-    python fetch_ai_news.py OUTPUT_PATH.json     (or omit path to print to stdout)
+Keep the CATEGORIES here in sync with ingestion/fetch_ai_news.py (the local
+preview copy).
 """
 
-import json
-import os
-import sys
 import datetime
-import urllib.request
+import json
 import urllib.parse
+import urllib.request
 import xml.etree.ElementTree as ET
 
-# --- The 5 categories and their search queries. Edit freely. ----------------
-# The dict order is the order the categories appear in the digest.
+# --- The 5 categories and their search queries. -----------------------------
 CATEGORIES: dict[str, list[str]] = {
     "Software Development": [
         "AI coding assistant OR AI code generation developer tools",
@@ -49,29 +39,11 @@ CATEGORIES: dict[str, list[str]] = {
     ],
 }
 
-WHEN_DAYS = 2                     # look back this many days
-MAX_PER_QUERY = 12               # Tavily results per query
+WHEN_DAYS = 2
+MAX_PER_QUERY = 12
 HL, GL, CEID = "en-US", "US", "US:en"
 USER_AGENT = "Mozilla/5.0 (ai-news-fetcher)"
 TIMEOUT = 30
-ENV_PATH = os.path.join(os.path.dirname(__file__), "..", ".env")
-
-
-def load_env_var(name: str) -> str | None:
-    if os.environ.get(name):
-        return os.environ[name]
-    try:
-        with open(ENV_PATH, encoding="utf-8") as fh:
-            for line in fh:
-                line = line.strip()
-                if not line or line.startswith("#") or "=" not in line:
-                    continue
-                k, v = line.split("=", 1)
-                if k.strip() == name:
-                    return v.strip().strip('"').strip("'")
-    except FileNotFoundError:
-        pass
-    return None
 
 
 def fetch_tavily(query: str, api_key: str) -> list[dict]:
@@ -129,9 +101,9 @@ def fetch_rss(query: str) -> list[dict]:
     return items
 
 
-def main() -> int:
+def build_collection(api_key: str | None) -> dict:
+    """Fetch every category and return the collection dict."""
     now = datetime.datetime.now(datetime.timezone.utc)
-    api_key = load_env_var("TAVILY_API_KEY")
     provider = "tavily" if api_key else "google_news_rss"
 
     all_items: list[dict] = []
@@ -142,9 +114,9 @@ def main() -> int:
             got: list[dict] = []
             try:
                 got = fetch_tavily(q, api_key) if api_key else fetch_rss(q)
-                if api_key and not got:      # Tavily empty -> backfill with RSS
+                if api_key and not got:
                     got = fetch_rss(q)
-            except Exception as exc:          # noqa: BLE001
+            except Exception as exc:  # noqa: BLE001
                 errors.append(f"{provider}:{category}:{q}: {exc}")
                 if api_key:
                     try:
@@ -155,9 +127,7 @@ def main() -> int:
                 it["category"] = category
             all_items.extend(got)
 
-    # De-duplicate by link (fall back to title). If an article appears in more
-    # than one category, keep the copy with the highest relevance score — that
-    # becomes its category, so every article lands in exactly one tab.
+    # De-duplicate by link; keep the highest-scoring copy (that fixes its category).
     best: dict[str, dict] = {}
     for item in all_items:
         key = item["link"] or item["title"]
@@ -171,7 +141,7 @@ def main() -> int:
     order = list(CATEGORIES.keys())
     counts = {c: sum(1 for it in deduped if it.get("category") == c) for c in order}
 
-    collection = {
+    return {
         "collection": "ai_news",
         "fetched_at": now.isoformat().replace("+00:00", "Z"),
         "date": now.date().isoformat(),
@@ -183,19 +153,3 @@ def main() -> int:
         "errors": errors,
         "items": deduped,
     }
-
-    payload = json.dumps(collection, ensure_ascii=False, indent=2)
-    if len(sys.argv) > 1:
-        with open(sys.argv[1], "w", encoding="utf-8") as fh:
-            fh.write(payload)
-        summary = ", ".join(f"{c}:{n}" for c, n in counts.items())
-        print(f"Wrote {len(deduped)} items to {sys.argv[1]} "
-              f"(provider={provider}; {summary}; errors={len(errors)})")
-    else:
-        print(payload)
-
-    return 0 if deduped else 1
-
-
-if __name__ == "__main__":
-    sys.exit(main())

@@ -11,18 +11,20 @@
 # ---------------------------------------------------------------------------
 set -euo pipefail
 
-# --- Settings (keep in sync with deploy/00_config.sh) -----------------------
-SOURCE_BUCKET="source_raw_123456"
-INCOMING_PREFIX="incoming/"
-PROJECT_DIR="/Users/kamaldhungana/Documents/Coding/pubsub/part1"
-DATA_DIR="${PROJECT_DIR}/data"
+# --- Settings (nothing hardcoded; override any of these via the environment) -
+# Repo dir is derived from this script's location. Bucket/prefix default to the
+# project config but can be overridden by exporting them.
+PROJECT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+DATA_DIR="${DATA_DIR:-${PROJECT_DIR}/data}"
+SOURCE_BUCKET="${SOURCE_BUCKET:-source_raw_123456}"
+INCOMING_PREFIX="${INCOMING_PREFIX:-incoming/}"
 
-# conda env mcp Python (found via `conda env list`). cron has a bare PATH, so
-# we call the interpreter by absolute path — no `conda activate` needed.
-MCP_PYTHON="/opt/anaconda3/envs/mcp/bin/python"
-
-# gcloud absolute path (cron's PATH is minimal). Verify with `which gcloud`.
-GCLOUD="$(command -v gcloud || echo /usr/local/bin/gcloud)"
+# Interpreter + gcloud are auto-detected from PATH. Under cron (minimal PATH),
+# export absolute paths in your crontab, e.g.:
+#   MCP_PYTHON=/opt/anaconda3/envs/mcp/bin/python
+#   GCLOUD=$HOME/google-cloud-sdk/bin/gcloud
+MCP_PYTHON="${MCP_PYTHON:-$(command -v python3 || echo python3)}"
+GCLOUD="${GCLOUD:-$(command -v gcloud || echo gcloud)}"
 
 # --- Paths ------------------------------------------------------------------
 DATE="$(date +%Y-%m-%d)"

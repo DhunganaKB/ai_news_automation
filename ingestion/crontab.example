@@ -1,18 +1,17 @@
-# Cron entry to fetch AI news daily and push the collection to GCS.
-# Install it with:   crontab -e   (then paste the line below)
-# Verify with:       crontab -l
+# LEGACY local cron (superseded by Cloud Scheduler — see `make setup-ingestion`).
+# Only needed if you want to run ingestion from your own machine instead of GCP.
 #
-# Runs fetch_and_push_news.sh once a day at 07:00 local time.
-# It logs to local_uploader/logs/.
+# Install with:  crontab -e   (paste a line below)   |   Verify with:  crontab -l
+# Replace /ABS/PATH/TO/REPO with the absolute path to this repo.
+# cron has a minimal PATH, so also export absolute tool paths on the line.
 #
 # minute hour dom month dow  command
-0 7 * * * /Users/kamaldhungana/Documents/Coding/pubsub/part1/ingestion/fetch_and_push_news.sh
+0 7 * * * MCP_PYTHON=/opt/anaconda3/envs/mcp/bin/python GCLOUD=$HOME/google-cloud-sdk/bin/gcloud /ABS/PATH/TO/REPO/ingestion/fetch_and_push_news.sh
 
 # --- Older option: sync a local data/ folder instead of fetching news --------
-# 0 * * * * /Users/kamaldhungana/Documents/Coding/pubsub/part1/ingestion/push_to_gcs.sh
+# 0 * * * * GCLOUD=$HOME/google-cloud-sdk/bin/gcloud /ABS/PATH/TO/REPO/ingestion/push_to_gcs.sh
 
 # ---------------------------------------------------------------------------
-# macOS note: cron needs "Full Disk Access" to read/write files in Documents.
+# macOS note: if the repo is under ~/Documents, cron needs "Full Disk Access".
 #   System Settings -> Privacy & Security -> Full Disk Access -> add /usr/sbin/cron
-# Otherwise the script runs but can't see your project folder.
 # ---------------------------------------------------------------------------

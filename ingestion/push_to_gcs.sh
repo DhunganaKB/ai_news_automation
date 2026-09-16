@@ -10,15 +10,14 @@
 # ---------------------------------------------------------------------------
 set -euo pipefail
 
-# --- Settings (keep in sync with deploy/00_config.sh) -----------------------
-SOURCE_BUCKET="source_raw_123456"
-INCOMING_PREFIX="incoming/"
-LOCAL_DATA_DIR="/Users/kamaldhungana/Documents/Coding/pubsub/part1/data"
+# --- Settings (nothing hardcoded; override any of these via the environment) -
+PROJECT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+LOCAL_DATA_DIR="${LOCAL_DATA_DIR:-${PROJECT_DIR}/data}"
+SOURCE_BUCKET="${SOURCE_BUCKET:-source_raw_123456}"
+INCOMING_PREFIX="${INCOMING_PREFIX:-incoming/}"
 
-# cron runs with a minimal PATH, so point at the gcloud binary explicitly.
-# Find yours once with:  which gcloud
-GCLOUD="/usr/local/bin/gcloud"          # <-- edit if `which gcloud` differs
-[ -x "$GCLOUD" ] || GCLOUD="$(command -v gcloud)"
+# Under cron (minimal PATH), export GCLOUD to an absolute path in your crontab.
+GCLOUD="${GCLOUD:-$(command -v gcloud || echo gcloud)}"
 
 LOG_DIR="$(dirname "$0")/logs"
 mkdir -p "$LOG_DIR"

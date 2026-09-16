@@ -1,64 +1,78 @@
 # AI News Event-Driven Pipeline
 
-A serverless pipeline that collects **AI news daily** and processes it through Google Cloud, fully event-driven:
+A serverless, **cloud-native** pipeline that collects **AI news daily**, categorises it into five topics, and renders a professional, tabbed **HTML digest** — fully event-driven and deployed by CI/CD.
 
-> **internet (AI news)** → **cron (your Mac)** → **GCS source bucket** → **Pub/Sub** → **Cloud Run** → **GCS destination bucket**
+> **Cloud Scheduler** → **news-fetcher** (Cloud Run) → **GCS source bucket** → **Pub/Sub** → **raw-file-processor** (Cloud Run) → **GCS destination bucket** (`ai_news_{date}.html`)
 
-- **Project:** `deve-487713`  **Region:** `us-central1`
-- No servers to babysit: a file landing in the source bucket is the only thing that triggers work.
+- **Daily trigger:** Cloud Scheduler — no local cron required.
+- **Secrets:** the Tavily API key lives in **Secret Manager**, never in code or the repo.
+- **Deploys:** **GitHub Actions** with **Workload Identity Federation** (keyless) — on **push to `main`** or a **`v*` tag from any branch**.
+- **Linting:** runs on **every branch push** and pull request.
+
+> **Configuration:** every resource name — including your **GCP project ID** — is set in one place: [`infra/00_config.sh`](infra/00_config.sh). This README uses `YOUR_PROJECT_ID` as a placeholder; set your real value there. See **[app_run.html](app_run.html)** for the full step-by-step run guide.
 
 ---
 
 ## 1. Architecture
 
 ```
-  YOUR MAC                                GOOGLE CLOUD (deve-487713 / us-central1)
-  ┌─────────────────────────┐
-  │ Tavily API / Google News │  (internet)
-  │      ↓ fetch_ai_news.py  │
-  │  data/ai_news_*.json     │
-  └──────────┬──────────────┘
-             │  cron: daily 07:00 — fetch_and_push_news.sh
-             ▼
-  ┌──────────────────────────┐   OBJECT_FINALIZE notification
-  │ Bucket 1 (SOURCE)         │──────────────┐
-  │ source_raw_123456         │              ▼
-  │   incoming/…              │      ┌────────────────────┐
-  └──────────────────────────┘      │ Pub/Sub topic       │
-                                     │ source-file-landed  │
-                                     └────────┬───────────┘
-                                              │ push subscription (OIDC auth)
-                                              │ source-file-landed-push
-                                              ▼
-                                     ┌──────────────────────┐
-                                     │ Cloud Run service     │
-                                     │ raw-file-processor    │
-                                     │  • download source obj│
-                                     │  • process_data()     │
-                                     │  • upload result      │
-                                     └────────┬──────────────┘
-                                              ▼
-                                     ┌──────────────────────────┐
-                                     │ Bucket 2 (DESTINATION)    │
-                                     │ destination_raw_123456    │
-                                     │   processed/…             │
-                                     └──────────────────────────┘
+  ┌───────────────────────┐
+  │ Cloud Scheduler        │  daily-news-fetch @ 07:00
+  │ (daily HTTP trigger)   │
+  └───────────┬───────────┘
+              │ OIDC-authenticated POST
+              ▼
+  ┌───────────────────────┐     reads Tavily key
+  │ Cloud Run: news-fetcher│◀────  Secret Manager: tavily-api-key
+  │  fetch categorised news│
+  └───────────┬───────────┘
+              │ uploads ai_news_{date}.json
+              ▼
+  ┌───────────────────────┐   OBJECT_FINALIZE notification
+  │ SOURCE bucket          │──────────────┐
+  │   incoming/…           │              ▼
+  └───────────────────────┘      ┌────────────────────┐
+                                  │ Pub/Sub topic       │
+                                  │ source-file-landed  │
+                                  └────────┬───────────┘
+                                           │ push subscription (OIDC)
+                                           ▼
+                                  ┌────────────────────────┐
+                                  │ Cloud Run:              │
+                                  │ raw-file-processor      │
+                                  │  JSON → tabbed HTML      │
+                                  └────────┬───────────────┘
+                                           ▼
+                                  ┌────────────────────────┐
+                                  │ DESTINATION bucket      │
+                                  │   processed/            │
+                                  │     ai_news_{date}.html │
+                                  └────────────────────────┘
+
+  CI/CD:  push to main OR tag v*  ──(GitHub Actions + WIF, keyless)──▶  gcloud run deploy (both services)
+          push to any branch      ──▶  ruff + shellcheck lint
 ```
 
-### Component names (all defined once in `infra/00_config.sh`)
+### Component names (all defined in `infra/00_config.sh`)
 
-| Role                          | Name                            |
-|-------------------------------|---------------------------------|
-| GCP project / region          | `deve-487713` / `us-central1`   |
-| Source bucket (bucket 1)      | `source_raw_123456` → `incoming/` |
-| Destination bucket (bucket 2) | `destination_raw_123456` → `processed/` |
-| Pub/Sub topic                 | `source-file-landed`            |
-| Pub/Sub push subscription     | `source-file-landed-push`       |
-| Cloud Run service             | `raw-file-processor`            |
-| Cloud Run runtime SA          | `raw-processor-sa@…`            |
-| Pub/Sub push identity SA      | `pubsub-push-sa@…`              |
-| Local news fetcher            | `ingestion/fetch_ai_news.py`    |
-| Local cron uploader           | `ingestion/fetch_and_push_news.sh` |
+| Role | Name |
+|------|------|
+| GCP project / region | `YOUR_PROJECT_ID` / `us-central1` |
+| Source bucket | `source_raw_123456` → `incoming/` |
+| Destination bucket | `destination_raw_123456` → `processed/` |
+| Pub/Sub topic | `source-file-landed` |
+| Pub/Sub push subscription | `source-file-landed-push` |
+| Cloud Run — fetcher | `news-fetcher` |
+| Cloud Run — processor | `raw-file-processor` |
+| Cloud Scheduler job | `daily-news-fetch` |
+| Secret (Tavily key) | `tavily-api-key` |
+| SA — fetcher runtime | `news-fetcher-sa` |
+| SA — processor runtime | `raw-processor-sa` |
+| SA — Pub/Sub push identity | `pubsub-push-sa` |
+| SA — Scheduler invoker | `scheduler-invoker-sa` |
+| SA — GitHub Actions deployer (WIF) | `github-deployer-sa` |
+
+(Service-account emails are `<name>@YOUR_PROJECT_ID.iam.gserviceaccount.com`.)
 
 ---
 
@@ -66,152 +80,168 @@ A serverless pipeline that collects **AI news daily** and processes it through G
 
 ```
 .
-├── Makefile                      # one-command tasks: make setup | deploy | news | test
+├── Makefile                       # task runner: make help
 ├── README.md
-├── .env.example                  # copy to .env; holds TAVILY_API_KEY
-├── .gitignore                    # keeps .env, data/, logs/ out of git
+├── app_run.html                   # full run guide (open in a browser)
+├── ruff.toml                      # lint config (used by CI and `make lint`)
+├── .env.example                   # copy to .env; holds TAVILY_API_KEY (gitignored)
+├── .gitignore                     # keeps .env, data/, logs/ out of git
 │
-├── ingestion/                    # runs on YOUR Mac (the cron side)
-│   ├── fetch_ai_news.py          #   fetch AI news (Tavily → RSS fallback) → JSON
-│   ├── fetch_and_push_news.sh    #   cron entrypoint: fetch → upload to source bucket
-│   ├── push_to_gcs.sh            #   legacy: sync a local data/ folder instead
-│   └── crontab.example           #   the daily cron line to install
+├── .github/workflows/
+│   ├── lint.yml                   # ruff + shellcheck on every branch push / PR
+│   └── deploy.yml                 # deploy both services on main push or v* tag (WIF)
 │
-├── services/                     # runs in GOOGLE CLOUD
-│   └── raw-file-processor/       #   the Cloud Run service
-│       ├── main.py               #     Flask: parse Pub/Sub push → process → write
+├── services/                      # runs in Google Cloud (deployed by CI)
+│   ├── news-fetcher/              #   fetches categorised AI news → source bucket
+│   │   ├── main.py                #     FastAPI: Scheduler POST → fetch → upload JSON
+│   │   ├── news_source.py         #     category-tagged Tavily/RSS fetch logic
+│   │   ├── requirements.txt
+│   │   └── Dockerfile
+│   └── raw-file-processor/        #   renders the HTML digest
+│       ├── main.py                #     FastAPI: Pub/Sub push → JSON → tabbed HTML
 │       ├── requirements.txt
-│       ├── Dockerfile
-│       └── .gcloudignore
+│       └── Dockerfile
 │
-├── infra/                        # one-time GCP setup (idempotent scripts)
-│   ├── 00_config.sh              #   ALL names/vars live here
-│   ├── 01_enable_apis.sh
-│   ├── 02_create_buckets.sh
-│   ├── 03_service_accounts_and_iam.sh
-│   ├── 04_create_topic.sh
-│   ├── 05_deploy_cloud_run.sh
-│   ├── 06_create_push_subscription.sh
-│   ├── 07_create_gcs_notification.sh
-│   ├── deploy_all.sh             #   runs 01→07 in the correct order
-│   ├── 99_test.sh                #   end-to-end smoke test
+├── infra/                         # one-time bootstrap (idempotent, fail-fast)
+│   ├── 00_config.sh               #   ALL names/vars live here (set YOUR_PROJECT_ID)
+│   ├── 01_enable_apis.sh … 07_create_gcs_notification.sh
+│   ├── deploy_all.sh              #   base pipeline: buckets, topic, processor, sub, notify
+│   ├── 10_secret_manager.sh       #   store Tavily key in Secret Manager
+│   ├── 11_deploy_news_fetcher.sh  #   fetcher SA + IAM + deploy fetcher
+│   ├── 12_cloud_scheduler.sh      #   daily Cloud Scheduler job (OIDC)
+│   ├── 13_setup_wif.sh            #   Workload Identity Federation for GitHub Actions
+│   ├── setup_ingestion.sh         #   runs 10 → 11 → 12
+│   ├── 99_test.sh                 #   end-to-end smoke test
 │   └── teardown.sh
 │
-└── data/                         # local scratch (gitignored) — generated JSON lands here
+├── ingestion/                     # OPTIONAL local/offline path (legacy)
+│   ├── fetch_ai_news.py           #   local preview copy of the fetch logic
+│   ├── fetch_and_push_news.sh     #   local cron entrypoint (superseded by Scheduler)
+│   └── crontab.example
+│
+└── data/                          # local scratch (gitignored)
 ```
 
 ---
 
-## 3. News fetcher (`ingestion/fetch_ai_news.py`)
+## 3. What the services do
 
-- **Primary source: Tavily** (`TAVILY_API_KEY` in `.env`) — relevance-scored news, real article URLs, content snippets.
-- **Fallback: Google News RSS** — used automatically per-query if Tavily is missing or errors, so the job never comes back empty.
-- Stdlib only → runs in the `mcp` conda env with nothing to install.
-- Output: a single JSON collection, e.g. `data/ai_news_2026-09-12.json`:
-  ```json
-  {
-    "collection": "ai_news",
-    "fetched_at": "2026-09-12T07:00:00Z",
-    "date": "2026-09-12",
-    "primary_provider": "tavily",
-    "count": 41,
-    "items": [ { "title": "...", "link": "...", "source": "...", "snippet": "...", "score": 0.88 } ]
-  }
-  ```
-- Edit the `QUERIES` list at the top of the script to change what topics are pulled.
+### `news-fetcher` (ingestion)
+Runs **category-specific Tavily searches** across five topics and tags every article with its category:
 
-## 4. Processing logic (where your real code goes)
+| Category | Audience |
+|----------|----------|
+| Software Development | engineers & builders |
+| Model Development | ML practitioners |
+| Economic Impact | business & policy |
+| Big Tech | industry watchers |
+| Research | researchers & academics |
 
-Open `services/raw-file-processor/main.py` → `process_data(object_name, raw_bytes)`.
-It returns `(bytes_to_write, output_object_name)`. Today it demos a CSV transform and passes other files through. **Replace the body with your real transformation** (e.g. enrich/filter the news JSON) — the plumbing (download, upload, Pub/Sub ack/retry) stays the same. Redeploy with `make deploy`.
+- **Primary source:** Tavily (key injected from Secret Manager). **Fallback:** Google News RSS per query, so a category is never empty.
+- De-duplicates by link, keeping each article in its **highest-relevance** category.
+- Uploads one JSON collection to `gs://<source-bucket>/incoming/ai_news_{date}.json`, which fires the pipeline.
+- Edit the `CATEGORIES` map in [`services/news-fetcher/news_source.py`](services/news-fetcher/news_source.py) to change topics/queries.
+
+### `raw-file-processor` (rendering)
+Parses the JSON and renders a **self-contained, tabbed HTML digest** — one clickable tab per category (plus "All"), the **top 5 stories per category** by relevance, each a highlighted card with a title link, source, date, and snippet. Output: `gs://<destination-bucket>/processed/ai_news_{date}.html` (served as `text/html`).
+
+- Change the per-category cap via the `MAX_PER_CATEGORY` env var (default `5`).
+- The digest layout lives in `render_news_html()` in [`services/raw-file-processor/main.py`](services/raw-file-processor/main.py).
 
 ---
 
-## 5. Quick start (using the Makefile)
+## 4. First-time setup
+
+> Prerequisite: `gcloud` installed and authenticated, and `YOUR_PROJECT_ID` set in `infra/00_config.sh`.
 
 ```bash
-make            # list all targets
-
-# --- one-time cloud setup (creates every resource; idempotent) ---
+# 1. Base pipeline: buckets, topic, processor, push subscription, notification
 make setup
 
-# --- verify end-to-end ---
-make test       # uploads a sample file, checks the destination bucket + logs
+# 2. Cloud ingestion: Secret Manager + news-fetcher + daily Cloud Scheduler
+make setup-ingestion
 
-# --- run the news job by hand (before scheduling it) ---
-make news       # fetch AI news now and push to the source bucket
-
-# --- schedule it daily ---
-make install-cron   # prints the cron line; paste it into `crontab -e`
+# 3. Test the whole thing now (don't wait for 07:00):
+make trigger        # runs Cloud Scheduler → fetch → pipeline → HTML digest
 ```
 
-### Setup order (what `make setup` runs, if you prefer step-by-step)
-
-```bash
-cd infra
-bash 01_enable_apis.sh              # Run, Build, Pub/Sub, Storage, IAM
-bash 04_create_topic.sh            # topic: source-file-landed
-bash 02_create_buckets.sh          # source_raw_123456 + destination_raw_123456
-bash 03_service_accounts_and_iam.sh# 2 SAs + IAM bindings
-bash 05_deploy_cloud_run.sh        # build image + deploy raw-file-processor
-bash 06_create_push_subscription.sh# subscription → Cloud Run (OIDC)
-bash 07_create_gcs_notification.sh # LAST: arms the trigger
-```
-On the first `05`, if `gcloud` offers to create an Artifact Registry repo, answer **Y**.
+`make setup-ingestion` reads your Tavily key from `.env` into Secret Manager (idempotent), deploys the fetcher, and creates the daily scheduler job.
 
 ---
 
-## 6. Schedule the daily cron
+## 5. CI/CD with GitHub Actions (keyless)
 
-1. Ensure `.env` has your `TAVILY_API_KEY` (copy from `.env.example`).
-2. Run once by hand: `make news` (check `ingestion/logs/`).
-3. Confirm paths in `ingestion/fetch_and_push_news.sh`:
-   - `MCP_PYTHON=/opt/anaconda3/envs/mcp/bin/python`
-   - `GCLOUD` = output of `which gcloud`
-4. Install the schedule:
-   ```bash
-   crontab -e
-   # paste (daily at 07:00):
-   0 7 * * * /Users/kamaldhungana/Documents/Coding/pubsub/part1/ingestion/fetch_and_push_news.sh
-   ```
-5. **macOS only:** give cron Full Disk Access — System Settings → Privacy & Security → Full Disk Access → add `/usr/sbin/cron`.
+Deploys use **Workload Identity Federation** — GitHub gets short-lived tokens scoped to your repo; **no service-account key is ever stored**.
 
-Logs from each run land in `ingestion/logs/`.
+**One-time, after creating the GitHub repo:**
+```bash
+# set GITHUB_REPO="owner/repo" in infra/00_config.sh, then:
+make wif
+```
+`make wif` prints two values. Add them as **repository variables** (Settings → Secrets and variables → Actions → **Variables**):
+
+| Variable | Value |
+|----------|-------|
+| `GCP_WORKLOAD_IDENTITY_PROVIDER` | printed by `make wif` |
+| `GCP_DEPLOYER_SA` | `github-deployer-sa@YOUR_PROJECT_ID.iam.gserviceaccount.com` |
+| `GCP_PROJECT_ID` | your GCP project ID |
+| `GCP_REGION` | e.g. `us-central1` |
+
+> `deploy.yml` reads the project ID and region from these variables — nothing is hardcoded in the workflow.
+
+**Deploy — two ways** (both run [`deploy.yml`](.github/workflows/deploy.yml), deploying both services):
+
+| Trigger | How |
+|---------|-----|
+| Merge / push to `main` | normal PR merge or push |
+| Tag `v*` from **any** branch | `git tag v1.0.0 && git push origin v1.0.0` |
+
+**Linting** ([`lint.yml`](.github/workflows/lint.yml)) runs `ruff` + `shellcheck` on every branch push and PR. Run it locally first:
+```bash
+make lint
+```
 
 ---
 
-## 7. Pushing to a Git repo & deploying from it
-
-The repo is self-contained and safe to push (`.env` is gitignored).
+## 6. Common commands
 
 ```bash
-git init && git add . && git commit -m "AI news pub/sub pipeline"
-# create a remote (GitHub CLI):  gh repo create <name> --private --source=. --push
+make                 # list all targets
+make trigger         # run the daily fetch now (cloud path)
+make deploy          # redeploy the processor
+make deploy-fetcher  # redeploy the fetcher
+make test            # end-to-end smoke test
+make logs            # tail processor logs
+make lint            # ruff check
+make teardown        # delete cloud resources (keeps buckets)
 ```
-
-**Deploy is code-driven:** `make deploy` runs `gcloud run deploy --source services/raw-file-processor`, which uses Cloud Build to build the container and roll it out. So on any machine with `gcloud` + this repo, a deploy is just:
-```bash
-make deploy
-```
-> Want fully automated deploys on `git push`? Add a Cloud Build trigger or a GitHub Actions workflow that runs `make deploy`. Ask and I'll add one — it needs a Workload Identity / service-account binding to your repo.
 
 ---
 
-## 8. Conda note
-The `mcp` conda env is used **locally** by the fetcher (`fetch_ai_news.py`). Cloud Run builds its own Python container in the cloud, so it needs nothing from conda. The cron script calls the env's interpreter directly (`/opt/anaconda3/envs/mcp/bin/python`) — no `conda activate` needed.
+## 7. Security & secrets
+
+- The Tavily key is stored **only** in Secret Manager (`tavily-api-key`) and injected into the fetcher at deploy time via `--set-secrets`. Your local `.env` is **gitignored** and never pushed.
+- Both Cloud Run services are deployed `--no-allow-unauthenticated` (private). Only their designated callers can invoke them: Pub/Sub (via `pubsub-push-sa`) for the processor, Cloud Scheduler (via `scheduler-invoker-sa`) for the fetcher.
+- GitHub Actions authenticates via WIF, restricted to your repository — no long-lived credentials.
+
+---
+
+## 8. Troubleshooting
+
+| Symptom | Likely cause / fix |
+|---|---|
+| No `ai_news_{date}.html` in the destination bucket | `make logs` — read the processor's Cloud Run output. |
+| Scheduler ran but no JSON in `incoming/` | Check the `news-fetcher` logs; verify it can read the secret and write the source bucket. |
+| `403` in Cloud Run logs | IAM still propagating (wait 1–2 min) or a runtime SA is missing a role — re-run the relevant `infra` script. |
+| Pub/Sub redelivering forever | Processor returning non-2xx; it returns 500 only on real errors — fix the error in the logs. |
+| Fetcher returns 0 items | Check the `errors` field in the JSON and the Tavily secret; the RSS fallback should still populate. |
+| First CI deploy fails on build/permissions | Ensure `make setup-ingestion` ran once (creates `news-fetcher-sa`) and that `make wif` granted the deployer roles. |
+| GitHub Actions auth fails | Confirm `GITHUB_REPO` in `00_config.sh` matches the real repo and the two repo variables are set. |
+
+---
 
 ## 9. Teardown
 ```bash
-make teardown                 # removes service, subscription, topic, notification, SAs
+make teardown                                   # service, subscription, topic, notification, SAs
 cd infra && bash teardown.sh --delete-buckets   # also empties + deletes both buckets
 ```
-
-## 10. Troubleshooting
-| Symptom | Likely cause / fix |
-|---|---|
-| File uploaded but nothing in `processed/` | `make logs` — read Cloud Run output. |
-| `403` in Cloud Run logs | IAM still propagating (wait 1–2 min) or `raw-processor-sa` missing bucket roles — re-run `03_…`. |
-| Pub/Sub redelivering forever | Cloud Run returning non-2xx; code returns 500 only on real errors — fix the error in logs. |
-| Nothing publishes on upload | Notification not armed — re-run `07_…`; confirm files go under `incoming/`. |
-| Fetcher returns 0 items / falls back | Check `errors` field in the JSON; verify `TAVILY_API_KEY`. RSS fallback should still populate. |
-| cron does nothing on macOS | Full Disk Access not granted to `/usr/sbin/cron`, or wrong `MCP_PYTHON`/`GCLOUD` path. |
