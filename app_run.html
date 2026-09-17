@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI News Pipeline — Run Guide</title>
+<style>
+  :root{
+    --bg:#f6f7f9; --card:#ffffff; --ink:#1c2430; --muted:#5b6675;
+    --line:#e4e8ee; --accent:#2f6feb; --accent-soft:#eaf1ff;
+    --code-bg:#0f1622; --code-ink:#e6edf3; --ok:#1a7f4b; --warn:#b25b00;
+    --chip:#eef1f6;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:15px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+  a{color:var(--accent)}
+  .wrap{max-width:900px;margin:0 auto;padding:32px 20px 80px}
+  header.hero{background:linear-gradient(135deg,#22314f,#2f6feb);color:#fff;
+    border-radius:16px;padding:28px 30px;margin-bottom:26px;box-shadow:0 6px 24px rgba(20,40,80,.18)}
+  header.hero h1{margin:0 0 6px;font-size:26px;letter-spacing:.2px}
+  header.hero p{margin:0;opacity:.92}
+  .flow{margin-top:16px;font-size:13px;background:rgba(255,255,255,.14);
+    border:1px solid rgba(255,255,255,.25);border-radius:10px;padding:10px 12px;
+    font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;overflow-x:auto;white-space:nowrap}
+  .meta{display:flex;flex-wrap:wrap;gap:8px;margin:18px 0 26px}
+  .meta .chip{background:var(--chip);border:1px solid var(--line);border-radius:999px;
+    padding:5px 12px;font-size:12.5px;color:var(--muted)}
+  .meta .chip b{color:var(--ink);font-weight:600}
+  .toc{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 20px;margin-bottom:26px}
+  .toc h2{margin:0 0 10px;font-size:13px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted)}
+  .toc ol{margin:0;padding-left:20px;columns:2;column-gap:30px}
+  .toc li{margin:3px 0}
+  .step{background:var(--card);border:1px solid var(--line);border-radius:14px;
+    padding:22px 24px;margin-bottom:20px;box-shadow:0 1px 2px rgba(0,0,0,.03)}
+  .step > h3{margin:0 0 4px;font-size:18px;display:flex;align-items:center;gap:12px}
+  .num{flex:0 0 auto;width:30px;height:30px;border-radius:50%;background:var(--accent);
+    color:#fff;font-size:15px;font-weight:700;display:grid;place-items:center}
+  .step .sub{color:var(--muted);margin:0 0 14px 42px;font-size:13.5px}
+  .step .body{margin-left:42px}
+  h4{margin:18px 0 6px;font-size:14px;color:var(--ink)}
+  pre{background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:14px 16px;
+    overflow-x:auto;font:13px/1.55 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;position:relative}
+  pre code{white-space:pre}
+  code.inl{background:#eef1f6;border:1px solid var(--line);border-radius:5px;padding:1px 6px;
+    font:12.5px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:#233}
+  .copy{position:absolute;top:8px;right:8px;background:#22314f;color:#cfe0ff;border:1px solid #3a4c70;
+    border-radius:6px;font-size:11px;padding:3px 9px;cursor:pointer;opacity:.85}
+  .copy:hover{opacity:1}
+  .note{border-left:4px solid var(--accent);background:var(--accent-soft);
+    padding:10px 14px;border-radius:0 8px 8px 0;margin:14px 0;font-size:13.5px}
+  .warn{border-left:4px solid var(--warn);background:#fff3e6;
+    padding:10px 14px;border-radius:0 8px 8px 0;margin:14px 0;font-size:13.5px}
+  .ok{border-left:4px solid var(--ok);background:#e9f7ef;
+    padding:10px 14px;border-radius:0 8px 8px 0;margin:14px 0;font-size:13.5px}
+  table{border-collapse:collapse;width:100%;margin:10px 0;font-size:13px}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+  th{background:#f0f3f8;font-weight:600}
+  .check{list-style:none;padding:0;margin:8px 0}
+  .check li{padding:4px 0 4px 26px;position:relative}
+  .check li:before{content:"☐";position:absolute;left:0;color:var(--accent);font-size:15px}
+  footer{color:var(--muted);font-size:12.5px;text-align:center;margin-top:30px}
+  kbd{background:#eef1f6;border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;padding:1px 6px;font-size:12px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero">
+    <h1>AI News Pipeline — Run Guide</h1>
+    <p>Everything you do to take this project from code to a live, daily, event-driven pipeline — now fully cloud-native with CI/CD.</p>
+    <div class="flow">Cloud Scheduler → news-fetcher (Cloud Run) → GCS source → Pub/Sub → raw-file-processor (Cloud Run) → GCS destination. Deploys via GitHub Actions.</div>
+  </header>
+
+  <div class="meta">
+    <span class="chip"><b>Project:</b> deve-487713</span>
+    <span class="chip"><b>Region:</b> us-central1</span>
+    <span class="chip"><b>Source:</b> source_raw_123456</span>
+    <span class="chip"><b>Destination:</b> destination_raw_123456</span>
+    <span class="chip"><b>Repo root:</b> ~/Documents/Coding/pubsub/part1</span>
+  </div>
+
+  <nav class="toc">
+    <h2>Steps</h2>
+    <ol>
+      <li><a href="#resources">📋 Resource inventory &amp; console links</a></li>
+      <li><a href="#cicd">☁️ Cloud ingestion, Secrets &amp; CI/CD ⭐</a></li>
+      <li><a href="#s0">Prerequisites</a></li>
+      <li><a href="#s1">Configure your <code class="inl">.env</code></a></li>
+      <li><a href="#s2">Review the config file</a></li>
+      <li><a href="#s3">One-time cloud setup</a></li>
+      <li><a href="#s4">Test end-to-end</a></li>
+      <li><a href="#s5">Run the pipeline manually ⭐</a></li>
+      <li><a href="#s6">Optional: automate with cron</a></li>
+      <li><a href="#s7">Verify &amp; monitor</a></li>
+      <li><a href="#s8">Push to a Git repo</a></li>
+      <li><a href="#s9">Update / redeploy</a></li>
+      <li><a href="#s10">Teardown</a></li>
+      <li><a href="#tr">Troubleshooting</a></li>
+    </ol>
+  </nav>
+
+  <!-- resources -->
+  <section class="step" id="resources">
+    <h3><span class="num">📋</span> Resource inventory &amp; console links</h3>
+    <p class="sub">Every resource this pipeline uses, with a direct link to track it in the
+      Google Cloud console. Project <code class="inl">deve-487713</code> · number
+      <code class="inl">320438000827</code> · region <code class="inl">us-central1</code>.</p>
+    <div class="body">
+
+      <h4>☁️ Google Cloud resources</h4>
+      <table>
+        <tr><th>Type</th><th>Name</th><th>Console</th></tr>
+        <tr>
+          <td>Bucket — source / input</td>
+          <td><code class="inl">source_raw_123456</code></td>
+          <td><a href="https://console.cloud.google.com/storage/browser/source_raw_123456?project=deve-487713" target="_blank">Cloud Storage ↗</a></td>
+        </tr>
+        <tr>
+          <td>Bucket — destination / output</td>
+          <td><code class="inl">destination_raw_123456</code></td>
+          <td><a href="https://console.cloud.google.com/storage/browser/destination_raw_123456?project=deve-487713" target="_blank">Cloud Storage ↗</a></td>
+        </tr>
+        <tr>
+          <td>Pub/Sub topic</td>
+          <td><code class="inl">source-file-landed</code></td>
+          <td><a href="https://console.cloud.google.com/cloudpubsub/topic/detail/source-file-landed?project=deve-487713" target="_blank">Pub/Sub topic ↗</a></td>
+        </tr>
+        <tr>
+          <td>Pub/Sub subscription (push)</td>
+          <td><code class="inl">source-file-landed-push</code></td>
+          <td><a href="https://console.cloud.google.com/cloudpubsub/subscription/detail/source-file-landed-push?project=deve-487713" target="_blank">Pub/Sub subscription ↗</a></td>
+        </tr>
+        <tr>
+          <td>Cloud Run service</td>
+          <td><code class="inl">raw-file-processor</code></td>
+          <td><a href="https://console.cloud.google.com/run/detail/us-central1/raw-file-processor/metrics?project=deve-487713" target="_blank">Cloud Run ↗</a> ·
+              <a href="https://console.cloud.google.com/run/detail/us-central1/raw-file-processor/logs?project=deve-487713" target="_blank">Logs ↗</a></td>
+        </tr>
+        <tr>
+          <td>GCS → Pub/Sub notification</td>
+          <td>id <code class="inl">5</code> on <code class="inl">source_raw_123456</code> (prefix <code class="inl">incoming/</code>, <code class="inl">OBJECT_FINALIZE</code>)</td>
+          <td><a href="https://console.cloud.google.com/storage/browser/_details/source_raw_123456?project=deve-487713" target="_blank">Bucket config ↗</a></td>
+        </tr>
+        <tr>
+          <td>Service account — Cloud Run runtime</td>
+          <td><code class="inl">raw-processor-sa@deve-487713.iam.gserviceaccount.com</code></td>
+          <td><a href="https://console.cloud.google.com/iam-admin/serviceaccounts?project=deve-487713" target="_blank">IAM ↗</a></td>
+        </tr>
+        <tr>
+          <td>Service account — Pub/Sub push identity</td>
+          <td><code class="inl">pubsub-push-sa@deve-487713.iam.gserviceaccount.com</code></td>
+          <td><a href="https://console.cloud.google.com/iam-admin/serviceaccounts?project=deve-487713" target="_blank">IAM ↗</a></td>
+        </tr>
+        <tr>
+          <td>Cloud Run service — news fetcher</td>
+          <td><code class="inl">news-fetcher</code></td>
+          <td><a href="https://console.cloud.google.com/run/detail/us-central1/news-fetcher/metrics?project=deve-487713" target="_blank">Cloud Run ↗</a></td>
+        </tr>
+        <tr>
+          <td>Cloud Scheduler job (daily)</td>
+          <td><code class="inl">daily-news-fetch</code></td>
+          <td><a href="https://console.cloud.google.com/cloudscheduler?project=deve-487713" target="_blank">Cloud Scheduler ↗</a></td>
+        </tr>
+        <tr>
+          <td>Secret — Tavily API key</td>
+          <td><code class="inl">tavily-api-key</code></td>
+          <td><a href="https://console.cloud.google.com/security/secret-manager?project=deve-487713" target="_blank">Secret Manager ↗</a></td>
+        </tr>
+        <tr>
+          <td>Service account — news-fetcher runtime</td>
+          <td><code class="inl">news-fetcher-sa@deve-487713.iam.gserviceaccount.com</code></td>
+          <td><a href="https://console.cloud.google.com/iam-admin/serviceaccounts?project=deve-487713" target="_blank">IAM ↗</a></td>
+        </tr>
+        <tr>
+          <td>Service account — Scheduler invoker</td>
+          <td><code class="inl">scheduler-invoker-sa@deve-487713.iam.gserviceaccount.com</code></td>
+          <td><a href="https://console.cloud.google.com/iam-admin/serviceaccounts?project=deve-487713" target="_blank">IAM ↗</a></td>
+        </tr>
+        <tr>
+          <td>Service account — GitHub Actions deployer (WIF)</td>
+          <td><code class="inl">github-deployer-sa@deve-487713.iam.gserviceaccount.com</code></td>
+          <td><a href="https://console.cloud.google.com/iam-admin/workload-identity-pools?project=deve-487713" target="_blank">Workload Identity ↗</a></td>
+        </tr>
+      </table>
+
+      <div class="note"><b>Cloud Run endpoint</b> (the URL Pub/Sub pushes to):
+        <code class="inl">https://raw-file-processor-zdpzfpmtka-uc.a.run.app</code></div>
+
+      <h4>💻 Local resources (your Mac)</h4>
+      <table>
+        <tr><th>Type</th><th>Name / Path</th></tr>
+        <tr><td>Project repo</td><td><code class="inl">/Users/kamaldhungana/Documents/Coding/pubsub/part1</code></td></tr>
+        <tr><td>News fetcher</td><td><code class="inl">ingestion/fetch_ai_news.py</code></td></tr>
+        <tr><td>Uploader (manual / cron)</td><td><code class="inl">ingestion/fetch_and_push_news.sh</code></td></tr>
+        <tr><td>Conda env (runs fetcher)</td><td><code class="inl">mcp</code> → <code class="inl">/opt/anaconda3/envs/mcp/bin/python</code></td></tr>
+        <tr><td>Secret (Tavily key)</td><td><code class="inl">.env</code> (gitignored)</td></tr>
+        <tr><td>Run logs</td><td><code class="inl">ingestion/logs/news_YYYYMMDD.log</code></td></tr>
+      </table>
+
+      <h4>🔗 The flow, by name</h4>
+      <pre><code>data/*.json ──(make news)──▶ source_raw_123456/incoming/
+   └─▶ notification id 5 ─▶ topic: source-file-landed
+        └─▶ subscription: source-file-landed-push ─▶ Cloud Run: raw-file-processor
+             (runs as raw-processor-sa) ─▶ destination_raw_123456/processed/</code></pre>
+
+      <div class="note">All console links target project <code class="inl">deve-487713</code>. Or jump to the
+        <a href="https://console.cloud.google.com/home/dashboard?project=deve-487713" target="_blank">project dashboard ↗</a>.</div>
+    </div>
+  </section>
+
+  <!-- cicd -->
+  <section class="step" id="cicd">
+    <h3><span class="num">☁️</span> Cloud ingestion, Secrets &amp; CI/CD</h3>
+    <p class="sub">The pipeline is now <b>fully cloud-native</b>: the daily trigger runs in
+      <b>Cloud Scheduler</b>, the fetch runs in a <b>news-fetcher</b> Cloud Run service, the Tavily key
+      lives in <b>Secret Manager</b>, and every deploy goes through <b>GitHub Actions</b> with keyless
+      auth (Workload Identity Federation). No local cron, no stored keys.</p>
+    <div class="body">
+
+      <h4>New architecture</h4>
+      <pre><code>Cloud Scheduler (daily-news-fetch, 07:00)
+   └─ OIDC POST ─▶ news-fetcher (Cloud Run)   ← reads tavily-api-key from Secret Manager
+                      └─ uploads ai_news_{date}.json ─▶ source_raw_123456/incoming/
+                             └─ Pub/Sub ─▶ raw-file-processor ─▶ destination/processed/ai_news_{date}.html
+
+GitHub Actions (one gated pipeline, ci-cd.yml):
+   push / PR ──▶ lint (ruff+shellcheck) + test (pytest)
+                        └─ if both pass AND ref is main / v* tag ──▶ deploy (both services, WIF)</code></pre>
+
+      <div class="ok"><b>Already done for you:</b> the required APIs are enabled and your Tavily key is
+        stored in Secret Manager as <code class="inl">tavily-api-key</code>. The steps below are idempotent.</div>
+
+      <h4>Bootstrap (local, once) vs. deploy (CI, every push)</h4>
+      <p>Two kinds of work are deliberately kept separate — this is why some steps run locally and are
+        <b>not</b> in the <code class="inl">ci-cd.yml</code> pipeline:</p>
+      <table>
+        <tr><th>One-time <b>bootstrap</b> — infrastructure</th><th>Every-push <b>deploy</b> — app code</th></tr>
+        <tr>
+          <td>Create service accounts &amp; IAM, the secret, buckets, Pub/Sub, the scheduler, and the WIF trust.</td>
+          <td>Build the container and roll out the Cloud Run service.</td>
+        </tr>
+        <tr>
+          <td>Needs <b>admin</b> rights · rarely changes · you run it <b>once</b>.</td>
+          <td>Needs only <b>deploy</b> rights · changes constantly · GitHub Actions runs it.</td>
+        </tr>
+        <tr>
+          <td><code class="inl">make setup</code> · <code class="inl">make setup-ingestion</code> · <code class="inl">make wif</code></td>
+          <td><code class="inl">ci-cd.yml</code> deploy job — push to <code class="inl">main</code> or tag <code class="inl">v*</code></td>
+        </tr>
+      </table>
+      <p><b>Why not do everything in the deploy pipeline?</b></p>
+      <ul>
+        <li><b>Least privilege.</b> Creating service accounts and granting project IAM needs admin roles. Giving those to the CI identity would let <i>any push</i> mint accounts and grant itself permissions — far too much blast radius. CI is kept to deploy-only powers on purpose.</li>
+        <li><b>WIF is a chicken-and-egg.</b> Workload Identity Federation is the very thing that lets GitHub authenticate to GCP, so it can't be created <i>by</i> GitHub. <code class="inl">make wif</code> must run once with your own admin credentials — there is no way around this.</li>
+        <li><b>One-time vs. every-time.</b> Infrastructure is created once and left alone; baking it into every deploy would re-run setup on every code push for no benefit.</li>
+      </ul>
+      <div class="ok"><b>Bottom line:</b> the local steps are a <b>one-time bootstrap</b>, not an ongoing chore.
+        After <code class="inl">make setup-ingestion</code> runs once, every future code change deploys purely
+        through GitHub Actions. You can even run the bootstrap in GCP <b>Cloud Shell</b> instead of your Mac —
+        it only needs your admin login.</div>
+
+      <h4>A) One-time bootstrap — run in this order</h4>
+      <pre><button class="copy">Copy</button><code># 1. base pipeline (buckets, topic, processor, subscription, notification) — if not already done
+make setup
+
+# 2. cloud ingestion: Secret Manager + news-fetcher service + daily Cloud Scheduler
+make setup-ingestion
+
+# 3. AFTER you create the GitHub repo: set GITHUB_REPO in infra/00_config.sh, then:
+make wif        # prints two values to add to GitHub (below)</code></pre>
+      <div class="note">Test the daily job immediately (no need to wait for 07:00):
+        <pre><button class="copy">Copy</button><code>make trigger    # runs Cloud Scheduler now → fetch → pipeline → HTML digest</code></pre></div>
+
+      <h4>B) Connect GitHub (keyless auth)</h4>
+      <p>After <code class="inl">make wif</code>, add the two values it prints as
+        <b>repository variables</b> (GitHub → Settings → Secrets and variables → Actions → <b>Variables</b>):</p>
+      <table>
+        <tr><th>Variable</th><th>Value</th></tr>
+        <tr><td><code class="inl">GCP_WORKLOAD_IDENTITY_PROVIDER</code></td><td>printed by <code class="inl">make wif</code></td></tr>
+        <tr><td><code class="inl">GCP_DEPLOYER_SA</code></td><td><code class="inl">github-deployer-sa@deve-487713.iam.gserviceaccount.com</code></td></tr>
+        <tr><td><code class="inl">GCP_PROJECT_ID</code></td><td><code class="inl">deve-487713</code></td></tr>
+        <tr><td><code class="inl">GCP_REGION</code></td><td><code class="inl">us-central1</code></td></tr>
+      </table>
+      <div class="ok">No JSON key is ever created or stored — GitHub gets short-lived tokens, scoped to <b>only your repo</b>.</div>
+
+      <h4>C) Deploy — two ways (gated by lint + tests)</h4>
+      <p>Everything is one workflow, <code class="inl">.github/workflows/ci-cd.yml</code>, with three jobs.
+        The <code class="inl">deploy</code> job declares <code class="inl">needs: [lint, test]</code>, so it runs
+        <b>only if lint and tests both pass</b> — and only on <code class="inl">main</code> or a <code class="inl">v*</code> tag.</p>
+      <table>
+        <tr><th>Trigger</th><th>How</th><th>Result</th></tr>
+        <tr><td>Any push / PR (any branch)</td><td>—</td><td><code class="inl">lint</code> + <code class="inl">test</code> run (no deploy)</td></tr>
+        <tr><td>Merge / push to <code class="inl">main</code></td><td>normal PR merge or push</td><td>lint + test → <b>deploy both services</b></td></tr>
+        <tr><td>Tag <code class="inl">v*</code> from <b>any</b> branch</td><td>see below</td><td>lint + test → <b>deploy that tagged commit</b></td></tr>
+      </table>
+      <pre><button class="copy">Copy</button><code># release from any branch by tagging:
+git tag v1.0.0
+git push origin v1.0.0</code></pre>
+
+      <h4>D) Lint + tests on every push (the gate)</h4>
+      <p><code class="inl">ci-cd.yml</code> runs <b>ruff</b> + <b>shellcheck</b> (lint) and <b>pytest</b> (unit tests)
+        on every push/PR. A failing check <b>blocks the deploy</b>. Run the same checks locally first:</p>
+      <pre><button class="copy">Copy</button><code>make lint       # ruff check .
+make test       # pytest -q</code></pre>
+
+      <div class="warn"><b>Secrets stay out of git.</b> The Tavily key lives only in Secret Manager and is
+        injected into <code class="inl">news-fetcher</code> at deploy time (<code class="inl">--set-secrets</code>).
+        Your local <code class="inl">.env</code> is gitignored and never pushed.</div>
+    </div>
+  </section>
+
+  <!-- 0 -->
+  <section class="step" id="s0">
+    <h3><span class="num">0</span> Prerequisites</h3>
+    <p class="sub">Confirm the tools this project needs are installed and pointed at the right account.</p>
+    <div class="body">
+      <ul class="check">
+        <li><b>Google Cloud SDK</b> installed and logged in as your account.</li>
+        <li><b>Conda env <code class="inl">mcp</code></b> exists at <code class="inl">/opt/anaconda3/envs/mcp/bin/python</code> (used by the news fetcher).</li>
+        <li><b>A Tavily API key</b> (news source). Free key at <a href="https://tavily.com">tavily.com</a>. Optional — the fetcher falls back to Google News RSS without it.</li>
+        <li><b>macOS</b> with permission to grant cron Full Disk Access (Step 6).</li>
+      </ul>
+      <h4>Verify gcloud is set to the right project &amp; region</h4>
+      <pre><button class="copy">Copy</button><code>gcloud config list
+# expect: project = deve-487713, run/region = us-central1
+# if not:
+gcloud config set project deve-487713
+gcloud config set run/region us-central1</code></pre>
+      <div class="note">All commands below are run from the repo root:
+        <code class="inl">cd ~/Documents/Coding/pubsub/part1</code></div>
+    </div>
+  </section>
+
+  <!-- 1 -->
+  <section class="step" id="s1">
+    <h3><span class="num">1</span> Configure your <code class="inl">.env</code></h3>
+    <p class="sub">Put your Tavily key where the fetcher reads it. This file is gitignored — it never gets committed.</p>
+    <div class="body">
+      <pre><button class="copy">Copy</button><code>cd ~/Documents/Coding/pubsub/part1
+cp .env.example .env
+# then open .env and set your key:
+#   TAVILY_API_KEY=tvly-xxxxxxxxxxxxxxxxxxxx</code></pre>
+      <div class="ok">If you skip this, the fetcher still works — it automatically uses Google News RSS instead of Tavily.</div>
+    </div>
+  </section>
+
+  <!-- 2 -->
+  <section class="step" id="s2">
+    <h3><span class="num">2</span> Review the config file</h3>
+    <p class="sub">Every cloud name lives in one place: <code class="inl">infra/00_config.sh</code>. Change names here only if you want different ones.</p>
+    <div class="body">
+      <table>
+        <tr><th>Variable</th><th>Value</th></tr>
+        <tr><td>PROJECT_ID</td><td>deve-487713</td></tr>
+        <tr><td>REGION</td><td>us-central1</td></tr>
+        <tr><td>SOURCE_BUCKET</td><td>source_raw_123456 (files land in <code class="inl">incoming/</code>)</td></tr>
+        <tr><td>DEST_BUCKET</td><td>destination_raw_123456 (results in <code class="inl">processed/</code>)</td></tr>
+        <tr><td>TOPIC</td><td>source-file-landed</td></tr>
+        <tr><td>PUSH_SUBSCRIPTION</td><td>source-file-landed-push</td></tr>
+        <tr><td>RUN_SERVICE</td><td>raw-file-processor</td></tr>
+      </table>
+      <div class="warn">Bucket names are globally unique across all of Google Cloud. If <code class="inl">make setup</code> fails saying a bucket name is taken, change <code class="inl">SOURCE_BUCKET</code>/<code class="inl">DEST_BUCKET</code> in <code class="inl">infra/00_config.sh</code> (and the two <code class="inl">ingestion/*.sh</code> scripts) to something unique.</div>
+    </div>
+  </section>
+
+  <!-- 3 -->
+  <section class="step" id="s3">
+    <h3><span class="num">3</span> One-time cloud setup</h3>
+    <p class="sub">Creates every GCP resource: APIs, buckets, service accounts + IAM, Pub/Sub topic, Cloud Run service, push subscription, and the bucket notification that arms the trigger. Safe to re-run (idempotent).</p>
+    <div class="body">
+      <pre><button class="copy">Copy</button><code>make setup</code></pre>
+      <div class="note">On the first run, when it deploys Cloud Run it may ask to create an Artifact Registry repository — answer <b>Y</b>. This build step takes a couple of minutes.</div>
+      <h4>Prefer to watch each piece? Run them individually instead:</h4>
+      <pre><button class="copy">Copy</button><code>cd infra
+bash 01_enable_apis.sh              # enable Run, Build, Pub/Sub, Storage, IAM
+bash 04_create_topic.sh            # Pub/Sub topic: source-file-landed
+bash 02_create_buckets.sh          # both buckets
+bash 03_service_accounts_and_iam.sh# 2 service accounts + IAM bindings
+bash 05_deploy_cloud_run.sh        # build image + deploy raw-file-processor
+bash 06_create_push_subscription.sh# subscription -> Cloud Run (OIDC auth)
+bash 07_create_gcs_notification.sh # LAST: source bucket -> topic (arms trigger)
+cd ..</code></pre>
+    </div>
+  </section>
+
+  <!-- 4 -->
+  <section class="step" id="s4">
+    <h3><span class="num">4</span> Test end-to-end</h3>
+    <p class="sub">Proves the whole chain works before you involve news or cron. Uploads a sample file, then checks the destination bucket and logs.</p>
+    <div class="body">
+      <pre><button class="copy">Copy</button><code>make test</code></pre>
+      <div class="ok"><b>Success looks like:</b> a matching file appears under
+        <code class="inl">gs://destination_raw_123456/processed/</code>, and the Cloud Run logs show
+        <code class="inl">PROCESS…</code> then <code class="inl">DONE: wrote gs://…</code>.</div>
+      <p>Check manually any time:</p>
+      <pre><button class="copy">Copy</button><code>gcloud storage ls gs://destination_raw_123456/processed/</code></pre>
+    </div>
+  </section>
+
+  <!-- 5 -->
+  <section class="step" id="s5">
+    <h3><span class="num">5</span> Run the pipeline manually ⭐</h3>
+    <p class="sub"><b>This is all you need — no cron required.</b> The moment a file lands in the
+      source bucket, Pub/Sub triggers Cloud Run and the result appears in the destination bucket
+      (verified: it processes in ~5 seconds).</p>
+    <div class="body">
+
+      <div class="ok"><b>The whole loop:</b>
+        push a file → <code class="inl">incoming/</code> → Pub/Sub → Cloud Run → <code class="inl">processed/</code>.
+        You control <i>when</i> by choosing when to push.</div>
+
+      <h4>Option A — fetch fresh AI news and push (one command)</h4>
+      <pre><button class="copy">Copy</button><code>make news</code></pre>
+      <p>This fetches AI news (Tavily → Google News RSS fallback), writes
+        <code class="inl">data/ai_news_YYYY-MM-DD.json</code>, uploads it to
+        <code class="inl">gs://source_raw_123456/incoming/</code> (that upload is the trigger),
+        and logs to <code class="inl">ingestion/logs/</code>.</p>
+
+      <h4>Option B — push your own records (any file)</h4>
+      <p>Drop any file into the source bucket's <code class="inl">incoming/</code> folder and it
+        processes immediately:</p>
+      <pre><button class="copy">Copy</button><code>gcloud storage cp /path/to/yourfile.json gs://source_raw_123456/incoming/</code></pre>
+
+      <h4>Then watch it process</h4>
+      <pre><button class="copy">Copy</button><code># the processed result appears here within seconds:
+gcloud storage ls gs://destination_raw_123456/processed/
+
+# and the Cloud Run logs show it working:
+make logs</code></pre>
+
+      <div class="warn"><b>Only files under <code class="inl">incoming/</code> trigger the pipeline.</b>
+        The Cloud Run outputs go to <code class="inl">processed/</code> in the other bucket, so there
+        is no loop.</div>
+
+      <div class="note">Just want to preview the fetched news locally without pushing?
+        <code class="inl">make fetch-local</code> → writes <code class="inl">data/ai_news_preview.json</code> (no upload, no trigger).</div>
+    </div>
+  </section>
+
+  <!-- 6 -->
+  <section class="step" id="s6">
+    <h3><span class="num">6</span> Legacy: local cron (superseded by Cloud Scheduler)</h3>
+    <p class="sub">You no longer need this. The daily trigger now runs in GCP via
+      <b>Cloud Scheduler</b> — see the <a href="#cicd">Cloud ingestion &amp; CI/CD</a> section. Kept here only
+      for a fully-local setup.</p>
+    <div class="body">
+      <div class="ok"><b>Recommended instead:</b> <code class="inl">make setup-ingestion</code> creates a
+        Cloud Scheduler job that runs the fetch daily in the cloud — no Mac, no cron, no Full Disk Access.</div>
+      <div class="warn"><b>macOS caveat (local cron only):</b> if the project lives under <code class="inl">~/Documents</code>,
+        cron is blocked by macOS privacy ("Operation not permitted") unless you grant
+        <b>Full Disk Access</b> to <code class="inl">/usr/sbin/cron</code>, or move the project out of
+        <code class="inl">~/Documents</code>. Manual runs (Step 5) have no such restriction.</div>
+      <h4>a) Confirm the paths inside <code class="inl">ingestion/fetch_and_push_news.sh</code></h4>
+      <pre><button class="copy">Copy</button><code>which gcloud                       # must match GCLOUD in the script
+ls /opt/anaconda3/envs/mcp/bin/python   # must match MCP_PYTHON in the script</code></pre>
+      <h4>b) Install the cron line</h4>
+      <pre><button class="copy">Copy</button><code>make install-cron        # prints the exact line, then:
+crontab -e               # paste it, save, quit</code></pre>
+      <p>The line it installs:</p>
+      <pre><button class="copy">Copy</button><code>0 7 * * * /Users/kamaldhungana/Documents/Coding/pubsub/part1/ingestion/fetch_and_push_news.sh</code></pre>
+      <div class="warn"><b>macOS required step:</b> give cron disk access, or it can't read your project folder.<br>
+        System Settings → Privacy &amp; Security → <b>Full Disk Access</b> → add <code class="inl">/usr/sbin/cron</code>
+        (press <kbd>⌘</kbd>+<kbd>Shift</kbd>+<kbd>G</kbd> in the file picker and type the path).</div>
+      <p>Confirm it's scheduled:</p>
+      <pre><button class="copy">Copy</button><code>crontab -l</code></pre>
+    </div>
+  </section>
+
+  <!-- 7 -->
+  <section class="step" id="s7">
+    <h3><span class="num">7</span> Verify &amp; monitor</h3>
+    <p class="sub">Where to look to confirm each daily run worked.</p>
+    <div class="body">
+      <table>
+        <tr><th>What to check</th><th>Command</th></tr>
+        <tr><td>Local cron log</td><td><code class="inl">cat ingestion/logs/news_$(date +%Y%m%d).log</code></td></tr>
+        <tr><td>File reached source bucket</td><td><code class="inl">gcloud storage ls gs://source_raw_123456/incoming/</code></td></tr>
+        <tr><td>Processed output landed</td><td><code class="inl">gcloud storage ls gs://destination_raw_123456/processed/</code></td></tr>
+        <tr><td>Cloud Run logs</td><td><code class="inl">make logs</code></td></tr>
+      </table>
+    </div>
+  </section>
+
+  <!-- 8 -->
+  <section class="step" id="s8">
+    <h3><span class="num">8</span> Push to a Git repo</h3>
+    <p class="sub">The repo is safe to push — <code class="inl">.env</code>, <code class="inl">data/</code>, and <code class="inl">logs/</code> are gitignored.</p>
+    <div class="body">
+      <pre><button class="copy">Copy</button><code># already committed locally. To publish on GitHub:
+gh repo create ai-news-pipeline --private --source=. --push</code></pre>
+      <div class="note">Deploys are code-driven: on any machine with <code class="inl">gcloud</code> + this repo,
+        <code class="inl">make deploy</code> rebuilds and rolls out the Cloud Run service.</div>
+    </div>
+  </section>
+
+  <!-- 9 -->
+  <section class="step" id="s9">
+    <h3><span class="num">9</span> Update / redeploy the processor</h3>
+    <p class="sub">When you change the processing logic, redeploy just the Cloud Run service.</p>
+    <div class="body">
+      <p>The service is a <b>FastAPI</b> app (served by <b>uvicorn</b>) in
+        <code class="inl">services/raw-file-processor/main.py</code>. The
+        <code class="inl">process_data()</code> function is where your real transformation goes. Then:</p>
+      <pre><button class="copy">Copy</button><code>make deploy</code></pre>
+      <div class="note">Stack: FastAPI + uvicorn + google-cloud-storage (see
+        <code class="inl">services/raw-file-processor/requirements.txt</code>).</div>
+    </div>
+  </section>
+
+  <!-- 10 -->
+  <section class="step" id="s10">
+    <h3><span class="num">10</span> Teardown (optional)</h3>
+    <p class="sub">Remove cloud resources when you're done, to avoid any charges.</p>
+    <div class="body">
+      <pre><button class="copy">Copy</button><code>make teardown                              # service, subscription, topic, notification, SAs
+cd infra && bash teardown.sh --delete-buckets   # also empties + deletes both buckets</code></pre>
+      <p>And remove the cron line with <code class="inl">crontab -e</code>.</p>
+    </div>
+  </section>
+
+  <!-- troubleshooting -->
+  <section class="step" id="tr">
+    <h3><span class="num">?</span> Troubleshooting</h3>
+    <div class="body">
+      <table>
+        <tr><th>Symptom</th><th>Likely cause / fix</th></tr>
+        <tr><td>File uploaded but nothing in <code class="inl">processed/</code></td><td>Run <code class="inl">make logs</code> and read the Cloud Run output.</td></tr>
+        <tr><td><code class="inl">403</code> in Cloud Run logs</td><td>IAM still propagating (wait 1–2 min) or the runtime SA is missing bucket roles — re-run <code class="inl">infra/03_service_accounts_and_iam.sh</code>.</td></tr>
+        <tr><td>Pub/Sub redelivering forever</td><td>Cloud Run returned a non-2xx. The code returns 500 only on real errors — fix the error shown in logs.</td></tr>
+        <tr><td>Nothing publishes when a file lands</td><td>Notification not armed — re-run <code class="inl">infra/07_create_gcs_notification.sh</code>; confirm files go under <code class="inl">incoming/</code>.</td></tr>
+        <tr><td>Fetcher returns 0 items</td><td>Check the <code class="inl">errors</code> field in the JSON and your <code class="inl">TAVILY_API_KEY</code>. RSS fallback should still populate.</td></tr>
+        <tr><td>cron does nothing on macOS</td><td>Full Disk Access not granted to <code class="inl">/usr/sbin/cron</code>, or wrong <code class="inl">MCP_PYTHON</code>/<code class="inl">GCLOUD</code> path in the script.</td></tr>
+        <tr><td>Bucket name already taken</td><td>Rename buckets in <code class="inl">infra/00_config.sh</code> + both <code class="inl">ingestion/*.sh</code> scripts, then re-run <code class="inl">make setup</code>.</td></tr>
+      </table>
+    </div>
+  </section>
+
+  <footer>
+    AI News Event-Driven Pipeline · Generated for project deve-487713 · Keep this file next to your README.
+  </footer>
+
+</div>
+
+<script>
+  // Copy-to-clipboard for each code block (works offline via file://).
+  document.querySelectorAll('pre .copy').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var code = btn.parentElement.querySelector('code');
+      var text = code ? code.innerText : '';
+      navigator.clipboard.writeText(text).then(function(){
+        var old = btn.textContent; btn.textContent = 'Copied!';
+        setTimeout(function(){ btn.textContent = old; }, 1200);
+      }).catch(function(){ btn.textContent = 'Ctrl+C'; });
+    });
+  });
+</script>
+</body>
+</html>

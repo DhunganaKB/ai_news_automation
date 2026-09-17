@@ -10,8 +10,7 @@ infra/.run_url
 infra/.fetcher_url
 
 # --- Personal run guide (embeds real project ID + live console links) --------
-app_run.html
-
+medium_article.md
 # --- Python -----------------------------------------------------------------
 __pycache__/
 *.py[cod]
