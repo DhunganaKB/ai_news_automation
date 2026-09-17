@@ -21,6 +21,25 @@ if ! gcloud iam service-accounts describe "$DEPLOYER_SA_EMAIL" >/dev/null 2>&1; 
     --project="$PROJECT_ID" --display-name="GitHub Actions deployer"
 fi
 
+# A newly-created service account is eventually consistent: it can be a few
+# seconds before IAM bindings recognise it. Grant each role with a short retry
+# so a fresh run doesn't fail with "Service account ... does not exist".
+grant_project_role() {
+  local role="$1" i
+  for i in 1 2 3 4 5 6; do
+    if gcloud projects add-iam-policy-binding "$PROJECT_ID" \
+         --member="serviceAccount:${DEPLOYER_SA_EMAIL}" --role="$role" \
+         --condition=None >/dev/null 2>&1; then
+      return 0
+    fi
+    echo "  waiting for ${DEPLOYER_SA} to propagate (attempt ${i}/6)..." >&2
+    sleep 5
+  done
+  # Final attempt, unsuppressed, so set -e surfaces the real error if any.
+  gcloud projects add-iam-policy-binding "$PROJECT_ID" \
+    --member="serviceAccount:${DEPLOYER_SA_EMAIL}" --role="$role" --condition=None >/dev/null
+}
+
 # Roles needed to build (Cloud Build) and deploy Cloud Run from source.
 for ROLE in \
   roles/run.admin \
@@ -28,9 +47,7 @@ for ROLE in \
   roles/cloudbuild.builds.editor \
   roles/artifactregistry.writer \
   roles/storage.admin ; do
-  gcloud projects add-iam-policy-binding "$PROJECT_ID" \
-    --member="serviceAccount:${DEPLOYER_SA_EMAIL}" --role="$ROLE" \
-    --condition=None >/dev/null
+  grant_project_role "$ROLE"
 done
 echo "Granted deploy roles to ${DEPLOYER_SA_EMAIL}."
 

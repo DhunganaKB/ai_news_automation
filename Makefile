@@ -11,7 +11,7 @@ PYTHON ?= python3
 .DEFAULT_GOAL := help
 
 .PHONY: help setup setup-ingestion wif secret deploy deploy-fetcher scheduler \
-        trigger test news fetch-local lint logs teardown
+        trigger test smoke news fetch-local lint logs teardown
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
@@ -45,7 +45,10 @@ trigger: ## Run the daily fetch NOW via Cloud Scheduler (cloud path)
 	cd $(INFRA) && source ./00_config.sh && \
 	  gcloud scheduler jobs run $$SCHEDULER_JOB --project=$$PROJECT_ID --location=$$REGION
 
-test: ## End-to-end smoke test (uploads a sample file, checks destination bucket)
+test: ## Run unit tests (same as CI)
+	$(PYTHON) -m pytest -q
+
+smoke: ## End-to-end smoke test (uploads a sample file, checks destination bucket)
 	cd $(INFRA) && bash 99_test.sh
 
 news: ## Local fetch + push to source bucket (manual/offline path)

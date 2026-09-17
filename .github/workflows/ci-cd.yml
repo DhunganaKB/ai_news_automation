@@ -1,30 +1,58 @@
-name: Deploy
+name: CI/CD
 
-# Two deployment triggers:
-#   1. Push to main            -> deploy latest main.
-#   2. Push a tag matching v*  -> deploy that tagged commit (from ANY branch).
+# One pipeline: lint + test run on every push/PR; deploy runs ONLY on a push to
+# main or a v* tag, and ONLY after lint and test both pass (needs + gated).
 on:
   push:
-    branches: [main]
+    branches: ['**']
     tags: ['v*']
+  pull_request:
 
-# Only one deploy at a time; let an in-progress deploy finish.
 concurrency:
-  group: deploy-cloud-run
+  group: cicd-${{ github.ref }}
   cancel-in-progress: false
 
 permissions:
   contents: read
-  id-token: write        # REQUIRED for Workload Identity Federation
+  id-token: write        # for Workload Identity Federation (deploy job)
 
 env:
-  # Set these as GitHub repository variables (Settings -> Secrets and variables
-  # -> Actions -> Variables). Nothing account-specific is hardcoded here.
   PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
   REGION: ${{ vars.GCP_REGION }}
 
 jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install ruff
+        run: pip install ruff==0.7.4
+      - name: Ruff check
+        run: ruff check .
+      - name: ShellCheck (errors only)
+        uses: ludeeus/action-shellcheck@master
+        with:
+          severity: error
+          scandir: '.'
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pytest
+        run: pip install pytest==8.3.3
+      - name: Run unit tests
+        run: pytest -q
+
   deploy:
+    needs: [lint, test]            # <-- only runs if BOTH pass
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -37,9 +65,6 @@ jobs:
 
       - name: Set up gcloud
         uses: google-github-actions/setup-gcloud@v2
-
-      - name: Show what we are deploying
-        run: echo "Deploying ref ${{ github.ref }} (sha ${{ github.sha }})"
 
       - name: Deploy news-fetcher
         run: |
@@ -64,7 +89,7 @@ jobs:
 
       - name: Summary
         run: |
-          echo "### Deployed ✅" >> "$GITHUB_STEP_SUMMARY"
+          echo "### Deployed ✅ (lint + tests passed)" >> "$GITHUB_STEP_SUMMARY"
           echo "- ref: \`${{ github.ref_name }}\`" >> "$GITHUB_STEP_SUMMARY"
           gcloud run services list --project="$PROJECT_ID" --region="$REGION" \
             --format="value(metadata.name,status.url)" >> "$GITHUB_STEP_SUMMARY"

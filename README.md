@@ -88,8 +88,12 @@ A serverless, **cloud-native** pipeline that collects **AI news daily**, categor
 ├── .gitignore                     # keeps .env, data/, logs/ out of git
 │
 ├── .github/workflows/
-│   ├── lint.yml                   # ruff + shellcheck on every branch push / PR
-│   └── deploy.yml                 # deploy both services on main push or v* tag (WIF)
+│   └── ci-cd.yml                  # lint + test on every push; deploy (gated) on main/v* tag
+│
+├── tests/                         # pytest unit tests (run in CI)
+│   ├── conftest.py
+│   ├── test_render.py             #   processor: HTML digest + top-N cap + escaping
+│   └── test_news_source.py        #   fetcher: category tagging + dedup + RSS fallback
 │
 ├── services/                      # runs in Google Cloud (deployed by CI)
 │   ├── news-fetcher/              #   fetches categorised AI news → source bucket
@@ -98,7 +102,8 @@ A serverless, **cloud-native** pipeline that collects **AI news daily**, categor
 │   │   ├── requirements.txt
 │   │   └── Dockerfile
 │   └── raw-file-processor/        #   renders the HTML digest
-│       ├── main.py                #     FastAPI: Pub/Sub push → JSON → tabbed HTML
+│       ├── main.py                #     FastAPI + Storage glue (Pub/Sub push handler)
+│       ├── render.py              #     pure logic: JSON → tabbed HTML (unit-tested)
 │       ├── requirements.txt
 │       └── Dockerfile
 │
@@ -187,18 +192,30 @@ make wif
 | `GCP_PROJECT_ID` | your GCP project ID |
 | `GCP_REGION` | e.g. `us-central1` |
 
-> `deploy.yml` reads the project ID and region from these variables — nothing is hardcoded in the workflow.
+> `ci-cd.yml` reads the project ID and region from these variables — nothing is hardcoded in the workflow.
 
-**Deploy — two ways** (both run [`deploy.yml`](.github/workflows/deploy.yml), deploying both services):
+**One gated pipeline** ([`ci-cd.yml`](.github/workflows/ci-cd.yml)) with three jobs:
+
+```
+push / PR  →  lint (ruff + shellcheck)  ┐
+           →  test (pytest)             ┴─►  deploy   (needs: lint + test)
+                                              runs ONLY on push to main / v* tag
+```
+
+- **`lint`** and **`test`** run on **every push (any branch) and PR**.
+- **`deploy`** has `needs: [lint, test]` and a branch/tag guard, so it deploys **only when both pass** and only on `main` or a `v*` tag. A red lint or failing test **blocks the deploy**.
+
+**Deploy — two ways:**
 
 | Trigger | How |
 |---------|-----|
 | Merge / push to `main` | normal PR merge or push |
 | Tag `v*` from **any** branch | `git tag v1.0.0 && git push origin v1.0.0` |
 
-**Linting** ([`lint.yml`](.github/workflows/lint.yml)) runs `ruff` + `shellcheck` on every branch push and PR. Run it locally first:
+Run the same checks locally before pushing:
 ```bash
-make lint
+make lint     # ruff
+make test     # pytest
 ```
 
 ---

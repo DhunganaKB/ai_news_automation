@@ -52,8 +52,9 @@ export SCHEDULE_TZ="${SCHEDULE_TZ:-America/New_York}"
 # --- Workload Identity Federation (GitHub Actions -> GCP, keyless) ----------
 export WIF_POOL="${WIF_POOL:-github-pool}"
 export WIF_PROVIDER="${WIF_PROVIDER:-github-provider}"
-# Required for `make wif`; format owner/repo. Export it or set it here:
-export GITHUB_REPO="${GITHUB_REPO:-}"
+# Auto-derived from the git 'origin' remote as owner/repo (override by exporting
+# GITHUB_REPO). Nothing hardcoded — it reads whatever remote your repo points at.
+export GITHUB_REPO="${GITHUB_REPO:-$(git -C "$REPO_ROOT" config --get remote.origin.url 2>/dev/null | sed -E 's#(git@|https://)github\.com[:/]##; s#\.git$##')}"
 
 # --- Service accounts (names derived from the values above) -----------------
 export RUN_SA="${RUN_SA:-raw-processor-sa}"
