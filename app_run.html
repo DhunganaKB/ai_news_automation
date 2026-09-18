@@ -73,7 +73,7 @@
   </header>
 
   <div class="meta">
-    <span class="chip"><b>Project:</b> deve-487713</span>
+    <span class="chip"><b>Project:</b> YOUR_PROJECT_ID</span>
     <span class="chip"><b>Region:</b> us-central1</span>
     <span class="chip"><b>Source:</b> source_raw_123456</span>
     <span class="chip"><b>Destination:</b> destination_raw_123456</span>
@@ -104,8 +104,8 @@
   <section class="step" id="resources">
     <h3><span class="num">📋</span> Resource inventory &amp; console links</h3>
     <p class="sub">Every resource this pipeline uses, with a direct link to track it in the
-      Google Cloud console. Project <code class="inl">deve-487713</code> · number
-      <code class="inl">320438000827</code> · region <code class="inl">us-central1</code>.</p>
+      Google Cloud console. Project <code class="inl">YOUR_PROJECT_ID</code> · number
+      <code class="inl">YOUR_PROJECT_NUMBER</code> · region <code class="inl">us-central1</code>.</p>
     <div class="body">
 
       <h4>☁️ Google Cloud resources</h4>
@@ -114,83 +114,83 @@
         <tr>
           <td>Bucket — source / input</td>
           <td><code class="inl">source_raw_123456</code></td>
-          <td><a href="https://console.cloud.google.com/storage/browser/source_raw_123456?project=deve-487713" target="_blank">Cloud Storage ↗</a></td>
+          <td><a href="https://console.cloud.google.com/storage/browser/source_raw_123456?project=YOUR_PROJECT_ID" target="_blank">Cloud Storage ↗</a></td>
         </tr>
         <tr>
           <td>Bucket — destination / output</td>
           <td><code class="inl">destination_raw_123456</code></td>
-          <td><a href="https://console.cloud.google.com/storage/browser/destination_raw_123456?project=deve-487713" target="_blank">Cloud Storage ↗</a></td>
+          <td><a href="https://console.cloud.google.com/storage/browser/destination_raw_123456?project=YOUR_PROJECT_ID" target="_blank">Cloud Storage ↗</a></td>
         </tr>
         <tr>
           <td>Pub/Sub topic</td>
           <td><code class="inl">source-file-landed</code></td>
-          <td><a href="https://console.cloud.google.com/cloudpubsub/topic/detail/source-file-landed?project=deve-487713" target="_blank">Pub/Sub topic ↗</a></td>
+          <td><a href="https://console.cloud.google.com/cloudpubsub/topic/detail/source-file-landed?project=YOUR_PROJECT_ID" target="_blank">Pub/Sub topic ↗</a></td>
         </tr>
         <tr>
           <td>Pub/Sub subscription (push)</td>
           <td><code class="inl">source-file-landed-push</code></td>
-          <td><a href="https://console.cloud.google.com/cloudpubsub/subscription/detail/source-file-landed-push?project=deve-487713" target="_blank">Pub/Sub subscription ↗</a></td>
+          <td><a href="https://console.cloud.google.com/cloudpubsub/subscription/detail/source-file-landed-push?project=YOUR_PROJECT_ID" target="_blank">Pub/Sub subscription ↗</a></td>
         </tr>
         <tr>
           <td>Cloud Run service</td>
           <td><code class="inl">raw-file-processor</code></td>
-          <td><a href="https://console.cloud.google.com/run/detail/us-central1/raw-file-processor/metrics?project=deve-487713" target="_blank">Cloud Run ↗</a> ·
-              <a href="https://console.cloud.google.com/run/detail/us-central1/raw-file-processor/logs?project=deve-487713" target="_blank">Logs ↗</a></td>
+          <td><a href="https://console.cloud.google.com/run/detail/us-central1/raw-file-processor/metrics?project=YOUR_PROJECT_ID" target="_blank">Cloud Run ↗</a> ·
+              <a href="https://console.cloud.google.com/run/detail/us-central1/raw-file-processor/logs?project=YOUR_PROJECT_ID" target="_blank">Logs ↗</a></td>
         </tr>
         <tr>
           <td>GCS → Pub/Sub notification</td>
           <td>id <code class="inl">5</code> on <code class="inl">source_raw_123456</code> (prefix <code class="inl">incoming/</code>, <code class="inl">OBJECT_FINALIZE</code>)</td>
-          <td><a href="https://console.cloud.google.com/storage/browser/_details/source_raw_123456?project=deve-487713" target="_blank">Bucket config ↗</a></td>
+          <td><a href="https://console.cloud.google.com/storage/browser/_details/source_raw_123456?project=YOUR_PROJECT_ID" target="_blank">Bucket config ↗</a></td>
         </tr>
         <tr>
           <td>Service account — Cloud Run runtime</td>
-          <td><code class="inl">raw-processor-sa@deve-487713.iam.gserviceaccount.com</code></td>
-          <td><a href="https://console.cloud.google.com/iam-admin/serviceaccounts?project=deve-487713" target="_blank">IAM ↗</a></td>
+          <td><code class="inl">raw-processor-sa@YOUR_PROJECT_ID.iam.gserviceaccount.com</code></td>
+          <td><a href="https://console.cloud.google.com/iam-admin/serviceaccounts?project=YOUR_PROJECT_ID" target="_blank">IAM ↗</a></td>
         </tr>
         <tr>
           <td>Service account — Pub/Sub push identity</td>
-          <td><code class="inl">pubsub-push-sa@deve-487713.iam.gserviceaccount.com</code></td>
-          <td><a href="https://console.cloud.google.com/iam-admin/serviceaccounts?project=deve-487713" target="_blank">IAM ↗</a></td>
+          <td><code class="inl">pubsub-push-sa@YOUR_PROJECT_ID.iam.gserviceaccount.com</code></td>
+          <td><a href="https://console.cloud.google.com/iam-admin/serviceaccounts?project=YOUR_PROJECT_ID" target="_blank">IAM ↗</a></td>
         </tr>
         <tr>
           <td>Cloud Run service — news fetcher</td>
           <td><code class="inl">news-fetcher</code></td>
-          <td><a href="https://console.cloud.google.com/run/detail/us-central1/news-fetcher/metrics?project=deve-487713" target="_blank">Cloud Run ↗</a></td>
+          <td><a href="https://console.cloud.google.com/run/detail/us-central1/news-fetcher/metrics?project=YOUR_PROJECT_ID" target="_blank">Cloud Run ↗</a></td>
         </tr>
         <tr>
           <td>Cloud Scheduler job (daily)</td>
           <td><code class="inl">daily-news-fetch</code></td>
-          <td><a href="https://console.cloud.google.com/cloudscheduler?project=deve-487713" target="_blank">Cloud Scheduler ↗</a></td>
+          <td><a href="https://console.cloud.google.com/cloudscheduler?project=YOUR_PROJECT_ID" target="_blank">Cloud Scheduler ↗</a></td>
         </tr>
         <tr>
           <td>Secret — Tavily API key</td>
           <td><code class="inl">tavily-api-key</code></td>
-          <td><a href="https://console.cloud.google.com/security/secret-manager?project=deve-487713" target="_blank">Secret Manager ↗</a></td>
+          <td><a href="https://console.cloud.google.com/security/secret-manager?project=YOUR_PROJECT_ID" target="_blank">Secret Manager ↗</a></td>
         </tr>
         <tr>
           <td>Service account — news-fetcher runtime</td>
-          <td><code class="inl">news-fetcher-sa@deve-487713.iam.gserviceaccount.com</code></td>
-          <td><a href="https://console.cloud.google.com/iam-admin/serviceaccounts?project=deve-487713" target="_blank">IAM ↗</a></td>
+          <td><code class="inl">news-fetcher-sa@YOUR_PROJECT_ID.iam.gserviceaccount.com</code></td>
+          <td><a href="https://console.cloud.google.com/iam-admin/serviceaccounts?project=YOUR_PROJECT_ID" target="_blank">IAM ↗</a></td>
         </tr>
         <tr>
           <td>Service account — Scheduler invoker</td>
-          <td><code class="inl">scheduler-invoker-sa@deve-487713.iam.gserviceaccount.com</code></td>
-          <td><a href="https://console.cloud.google.com/iam-admin/serviceaccounts?project=deve-487713" target="_blank">IAM ↗</a></td>
+          <td><code class="inl">scheduler-invoker-sa@YOUR_PROJECT_ID.iam.gserviceaccount.com</code></td>
+          <td><a href="https://console.cloud.google.com/iam-admin/serviceaccounts?project=YOUR_PROJECT_ID" target="_blank">IAM ↗</a></td>
         </tr>
         <tr>
           <td>Service account — GitHub Actions deployer (WIF)</td>
-          <td><code class="inl">github-deployer-sa@deve-487713.iam.gserviceaccount.com</code></td>
-          <td><a href="https://console.cloud.google.com/iam-admin/workload-identity-pools?project=deve-487713" target="_blank">Workload Identity ↗</a></td>
+          <td><code class="inl">github-deployer-sa@YOUR_PROJECT_ID.iam.gserviceaccount.com</code></td>
+          <td><a href="https://console.cloud.google.com/iam-admin/workload-identity-pools?project=YOUR_PROJECT_ID" target="_blank">Workload Identity ↗</a></td>
         </tr>
       </table>
 
       <div class="note"><b>Cloud Run endpoint</b> (the URL Pub/Sub pushes to):
-        <code class="inl">https://raw-file-processor-zdpzfpmtka-uc.a.run.app</code></div>
+        <code class="inl">https://raw-file-processor-XXXXXX-uc.a.run.app</code></div>
 
       <h4>💻 Local resources (your Mac)</h4>
       <table>
         <tr><th>Type</th><th>Name / Path</th></tr>
-        <tr><td>Project repo</td><td><code class="inl">/Users/kamaldhungana/Documents/Coding/pubsub/part1</code></td></tr>
+        <tr><td>Project repo</td><td><code class="inl">/path/to/your-repo</code></td></tr>
         <tr><td>News fetcher</td><td><code class="inl">ingestion/fetch_ai_news.py</code></td></tr>
         <tr><td>Uploader (manual / cron)</td><td><code class="inl">ingestion/fetch_and_push_news.sh</code></td></tr>
         <tr><td>Conda env (runs fetcher)</td><td><code class="inl">mcp</code> → <code class="inl">/opt/anaconda3/envs/mcp/bin/python</code></td></tr>
@@ -204,8 +204,8 @@
         └─▶ subscription: source-file-landed-push ─▶ Cloud Run: raw-file-processor
              (runs as raw-processor-sa) ─▶ destination_raw_123456/processed/</code></pre>
 
-      <div class="note">All console links target project <code class="inl">deve-487713</code>. Or jump to the
-        <a href="https://console.cloud.google.com/home/dashboard?project=deve-487713" target="_blank">project dashboard ↗</a>.</div>
+      <div class="note">All console links target project <code class="inl">YOUR_PROJECT_ID</code>. Or jump to the
+        <a href="https://console.cloud.google.com/home/dashboard?project=YOUR_PROJECT_ID" target="_blank">project dashboard ↗</a>.</div>
     </div>
   </section>
 
@@ -278,8 +278,8 @@ make wif        # prints two values to add to GitHub (below)</code></pre>
       <table>
         <tr><th>Variable</th><th>Value</th></tr>
         <tr><td><code class="inl">GCP_WORKLOAD_IDENTITY_PROVIDER</code></td><td>printed by <code class="inl">make wif</code></td></tr>
-        <tr><td><code class="inl">GCP_DEPLOYER_SA</code></td><td><code class="inl">github-deployer-sa@deve-487713.iam.gserviceaccount.com</code></td></tr>
-        <tr><td><code class="inl">GCP_PROJECT_ID</code></td><td><code class="inl">deve-487713</code></td></tr>
+        <tr><td><code class="inl">GCP_DEPLOYER_SA</code></td><td><code class="inl">github-deployer-sa@YOUR_PROJECT_ID.iam.gserviceaccount.com</code></td></tr>
+        <tr><td><code class="inl">GCP_PROJECT_ID</code></td><td><code class="inl">YOUR_PROJECT_ID</code></td></tr>
         <tr><td><code class="inl">GCP_REGION</code></td><td><code class="inl">us-central1</code></td></tr>
       </table>
       <div class="ok">No JSON key is ever created or stored — GitHub gets short-lived tokens, scoped to <b>only your repo</b>.</div>
@@ -323,9 +323,9 @@ make test       # pytest -q</code></pre>
       </ul>
       <h4>Verify gcloud is set to the right project &amp; region</h4>
       <pre><button class="copy">Copy</button><code>gcloud config list
-# expect: project = deve-487713, run/region = us-central1
+# expect: project = YOUR_PROJECT_ID, run/region = us-central1
 # if not:
-gcloud config set project deve-487713
+gcloud config set project YOUR_PROJECT_ID
 gcloud config set run/region us-central1</code></pre>
       <div class="note">All commands below are run from the repo root:
         <code class="inl">cd ~/Documents/Coding/pubsub/part1</code></div>
@@ -352,7 +352,7 @@ cp .env.example .env
     <div class="body">
       <table>
         <tr><th>Variable</th><th>Value</th></tr>
-        <tr><td>PROJECT_ID</td><td>deve-487713</td></tr>
+        <tr><td>PROJECT_ID</td><td>YOUR_PROJECT_ID</td></tr>
         <tr><td>REGION</td><td>us-central1</td></tr>
         <tr><td>SOURCE_BUCKET</td><td>source_raw_123456 (files land in <code class="inl">incoming/</code>)</td></tr>
         <tr><td>DEST_BUCKET</td><td>destination_raw_123456 (results in <code class="inl">processed/</code>)</td></tr>
@@ -458,7 +458,7 @@ ls /opt/anaconda3/envs/mcp/bin/python   # must match MCP_PYTHON in the script</c
       <pre><button class="copy">Copy</button><code>make install-cron        # prints the exact line, then:
 crontab -e               # paste it, save, quit</code></pre>
       <p>The line it installs:</p>
-      <pre><button class="copy">Copy</button><code>0 7 * * * /Users/kamaldhungana/Documents/Coding/pubsub/part1/ingestion/fetch_and_push_news.sh</code></pre>
+      <pre><button class="copy">Copy</button><code>0 7 * * * /path/to/your-repo/ingestion/fetch_and_push_news.sh</code></pre>
       <div class="warn"><b>macOS required step:</b> give cron disk access, or it can't read your project folder.<br>
         System Settings → Privacy &amp; Security → <b>Full Disk Access</b> → add <code class="inl">/usr/sbin/cron</code>
         (press <kbd>⌘</kbd>+<kbd>Shift</kbd>+<kbd>G</kbd> in the file picker and type the path).</div>
@@ -537,7 +537,7 @@ cd infra && bash teardown.sh --delete-buckets   # also empties + deletes both bu
   </section>
 
   <footer>
-    AI News Event-Driven Pipeline · Generated for project deve-487713 · Keep this file next to your README.
+    AI News Event-Driven Pipeline · Generated for project YOUR_PROJECT_ID · Keep this file next to your README.
   </footer>
 
 </div>

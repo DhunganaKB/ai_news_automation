@@ -9,7 +9,10 @@ ingestion/logs/
 infra/.run_url
 infra/.fetcher_url
 
-# --- Personal run guide (embeds real project ID + live console links) --------
+# --- Local-only files (real values / drafts; keep out of a public repo) ------
+# instruction.html = ORIGINAL run guide with real project ID / URLs.
+# (app_run.html is the MASKED, shareable copy and is intentionally NOT ignored.)
+instruction.html
 medium_article.md
 # --- Python -----------------------------------------------------------------
 __pycache__/
