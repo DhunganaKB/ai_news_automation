@@ -75,8 +75,8 @@
   <div class="meta">
     <span class="chip"><b>Project:</b> YOUR_PROJECT_ID</span>
     <span class="chip"><b>Region:</b> us-central1</span>
-    <span class="chip"><b>Source:</b> source_raw_123456</span>
-    <span class="chip"><b>Destination:</b> destination_raw_123456</span>
+    <span class="chip"><b>Source:</b> YOUR_SOURCE_BUCKET</span>
+    <span class="chip"><b>Destination:</b> YOUR_DEST_BUCKET</span>
     <span class="chip"><b>Repo root:</b> ~/Documents/Coding/pubsub/part1</span>
   </div>
 
@@ -113,13 +113,13 @@
         <tr><th>Type</th><th>Name</th><th>Console</th></tr>
         <tr>
           <td>Bucket — source / input</td>
-          <td><code class="inl">source_raw_123456</code></td>
-          <td><a href="https://console.cloud.google.com/storage/browser/source_raw_123456?project=YOUR_PROJECT_ID" target="_blank">Cloud Storage ↗</a></td>
+          <td><code class="inl">YOUR_SOURCE_BUCKET</code></td>
+          <td><a href="https://console.cloud.google.com/storage/browser/YOUR_SOURCE_BUCKET?project=YOUR_PROJECT_ID" target="_blank">Cloud Storage ↗</a></td>
         </tr>
         <tr>
           <td>Bucket — destination / output</td>
-          <td><code class="inl">destination_raw_123456</code></td>
-          <td><a href="https://console.cloud.google.com/storage/browser/destination_raw_123456?project=YOUR_PROJECT_ID" target="_blank">Cloud Storage ↗</a></td>
+          <td><code class="inl">YOUR_DEST_BUCKET</code></td>
+          <td><a href="https://console.cloud.google.com/storage/browser/YOUR_DEST_BUCKET?project=YOUR_PROJECT_ID" target="_blank">Cloud Storage ↗</a></td>
         </tr>
         <tr>
           <td>Pub/Sub topic</td>
@@ -139,8 +139,8 @@
         </tr>
         <tr>
           <td>GCS → Pub/Sub notification</td>
-          <td>id <code class="inl">5</code> on <code class="inl">source_raw_123456</code> (prefix <code class="inl">incoming/</code>, <code class="inl">OBJECT_FINALIZE</code>)</td>
-          <td><a href="https://console.cloud.google.com/storage/browser/_details/source_raw_123456?project=YOUR_PROJECT_ID" target="_blank">Bucket config ↗</a></td>
+          <td>id <code class="inl">5</code> on <code class="inl">YOUR_SOURCE_BUCKET</code> (prefix <code class="inl">incoming/</code>, <code class="inl">OBJECT_FINALIZE</code>)</td>
+          <td><a href="https://console.cloud.google.com/storage/browser/_details/YOUR_SOURCE_BUCKET?project=YOUR_PROJECT_ID" target="_blank">Bucket config ↗</a></td>
         </tr>
         <tr>
           <td>Service account — Cloud Run runtime</td>
@@ -199,10 +199,10 @@
       </table>
 
       <h4>🔗 The flow, by name</h4>
-      <pre><code>data/*.json ──(make news)──▶ source_raw_123456/incoming/
+      <pre><code>data/*.json ──(make news)──▶ YOUR_SOURCE_BUCKET/incoming/
    └─▶ notification id 5 ─▶ topic: source-file-landed
         └─▶ subscription: source-file-landed-push ─▶ Cloud Run: raw-file-processor
-             (runs as raw-processor-sa) ─▶ destination_raw_123456/processed/</code></pre>
+             (runs as raw-processor-sa) ─▶ YOUR_DEST_BUCKET/processed/</code></pre>
 
       <div class="note">All console links target project <code class="inl">YOUR_PROJECT_ID</code>. Or jump to the
         <a href="https://console.cloud.google.com/home/dashboard?project=YOUR_PROJECT_ID" target="_blank">project dashboard ↗</a>.</div>
@@ -221,7 +221,7 @@
       <h4>New architecture</h4>
       <pre><code>Cloud Scheduler (daily-news-fetch, 07:00)
    └─ OIDC POST ─▶ news-fetcher (Cloud Run)   ← reads tavily-api-key from Secret Manager
-                      └─ uploads ai_news_{date}.json ─▶ source_raw_123456/incoming/
+                      └─ uploads ai_news_{date}.json ─▶ YOUR_SOURCE_BUCKET/incoming/
                              └─ Pub/Sub ─▶ raw-file-processor ─▶ destination/processed/ai_news_{date}.html
 
 GitHub Actions (one gated pipeline, ci-cd.yml):
@@ -354,8 +354,8 @@ cp .env.example .env
         <tr><th>Variable</th><th>Value</th></tr>
         <tr><td>PROJECT_ID</td><td>YOUR_PROJECT_ID</td></tr>
         <tr><td>REGION</td><td>us-central1</td></tr>
-        <tr><td>SOURCE_BUCKET</td><td>source_raw_123456 (files land in <code class="inl">incoming/</code>)</td></tr>
-        <tr><td>DEST_BUCKET</td><td>destination_raw_123456 (results in <code class="inl">processed/</code>)</td></tr>
+        <tr><td>SOURCE_BUCKET</td><td>YOUR_SOURCE_BUCKET (files land in <code class="inl">incoming/</code>)</td></tr>
+        <tr><td>DEST_BUCKET</td><td>YOUR_DEST_BUCKET (results in <code class="inl">processed/</code>)</td></tr>
         <tr><td>TOPIC</td><td>source-file-landed</td></tr>
         <tr><td>PUSH_SUBSCRIPTION</td><td>source-file-landed-push</td></tr>
         <tr><td>RUN_SERVICE</td><td>raw-file-processor</td></tr>
@@ -391,10 +391,10 @@ cd ..</code></pre>
     <div class="body">
       <pre><button class="copy">Copy</button><code>make test</code></pre>
       <div class="ok"><b>Success looks like:</b> a matching file appears under
-        <code class="inl">gs://destination_raw_123456/processed/</code>, and the Cloud Run logs show
+        <code class="inl">gs://YOUR_DEST_BUCKET/processed/</code>, and the Cloud Run logs show
         <code class="inl">PROCESS…</code> then <code class="inl">DONE: wrote gs://…</code>.</div>
       <p>Check manually any time:</p>
-      <pre><button class="copy">Copy</button><code>gcloud storage ls gs://destination_raw_123456/processed/</code></pre>
+      <pre><button class="copy">Copy</button><code>gcloud storage ls gs://YOUR_DEST_BUCKET/processed/</code></pre>
     </div>
   </section>
 
@@ -414,17 +414,17 @@ cd ..</code></pre>
       <pre><button class="copy">Copy</button><code>make news</code></pre>
       <p>This fetches AI news (Tavily → Google News RSS fallback), writes
         <code class="inl">data/ai_news_YYYY-MM-DD.json</code>, uploads it to
-        <code class="inl">gs://source_raw_123456/incoming/</code> (that upload is the trigger),
+        <code class="inl">gs://YOUR_SOURCE_BUCKET/incoming/</code> (that upload is the trigger),
         and logs to <code class="inl">ingestion/logs/</code>.</p>
 
       <h4>Option B — push your own records (any file)</h4>
       <p>Drop any file into the source bucket's <code class="inl">incoming/</code> folder and it
         processes immediately:</p>
-      <pre><button class="copy">Copy</button><code>gcloud storage cp /path/to/yourfile.json gs://source_raw_123456/incoming/</code></pre>
+      <pre><button class="copy">Copy</button><code>gcloud storage cp /path/to/yourfile.json gs://YOUR_SOURCE_BUCKET/incoming/</code></pre>
 
       <h4>Then watch it process</h4>
       <pre><button class="copy">Copy</button><code># the processed result appears here within seconds:
-gcloud storage ls gs://destination_raw_123456/processed/
+gcloud storage ls gs://YOUR_DEST_BUCKET/processed/
 
 # and the Cloud Run logs show it working:
 make logs</code></pre>
@@ -475,8 +475,8 @@ crontab -e               # paste it, save, quit</code></pre>
       <table>
         <tr><th>What to check</th><th>Command</th></tr>
         <tr><td>Local cron log</td><td><code class="inl">cat ingestion/logs/news_$(date +%Y%m%d).log</code></td></tr>
-        <tr><td>File reached source bucket</td><td><code class="inl">gcloud storage ls gs://source_raw_123456/incoming/</code></td></tr>
-        <tr><td>Processed output landed</td><td><code class="inl">gcloud storage ls gs://destination_raw_123456/processed/</code></td></tr>
+        <tr><td>File reached source bucket</td><td><code class="inl">gcloud storage ls gs://YOUR_SOURCE_BUCKET/incoming/</code></td></tr>
+        <tr><td>Processed output landed</td><td><code class="inl">gcloud storage ls gs://YOUR_DEST_BUCKET/processed/</code></td></tr>
         <tr><td>Cloud Run logs</td><td><code class="inl">make logs</code></td></tr>
       </table>
     </div>
